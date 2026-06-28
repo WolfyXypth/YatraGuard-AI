@@ -1,6 +1,6 @@
 # Sagarmatha Guard v2
 
-Simple altitude risk API. **Two files: `main.py` and `test_main.py`.**
+Simple altitude risk API. **Two files: `main.py` and `simulation.py`.**
 
 ## Run
 
@@ -10,7 +10,6 @@ uvicorn main:app --reload
 # → http://localhost:8000/docs
 ```
 
-## The one endpoint
 
 ### `POST /risk`
 
@@ -76,7 +75,3 @@ uvicorn main:app --reload
 | 61–80 | Very High | Descend now |
 | 81–100 | Critical | Evacuate |
 
-## Tests
-```bash
-pytest test_main.py -v   # 11 tests
-```
