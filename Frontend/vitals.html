@@ -98,31 +98,131 @@
     @media(max-width:768px){.main-wrap{grid-template-columns:1fr}.sidebar{display:none}.topbar-nav{display:none}.hero{padding:40px 20px}}
     @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
   
-    /* ── HAMBURGER + DRAWER ── */
-    .mob-menu-btn{display:none;width:38px;height:38px;border-radius:9px;background:var(--mist);border:1.5px solid var(--border);color:var(--navy);font-size:1.2rem;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background .15s;}
-    .mob-menu-btn:hover{background:var(--sky-pale);}
-    .nav-drawer{position:fixed;top:0;right:0;bottom:0;z-index:1100;width:min(82vw,300px);background:var(--white);box-shadow:-6px 0 32px rgba(15,35,64,0.18);transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow-y:auto;}
-    .nav-drawer.open{transform:translateX(0);}
-    .nav-drawer-backdrop{position:fixed;inset:0;z-index:1099;background:rgba(15,35,64,0.45);backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .25s;}
-    .nav-drawer-backdrop.open{opacity:1;pointer-events:all;}
-    .nav-drawer-header{display:flex;align-items:center;justify-content:space-between;padding:18px 18px 12px;border-bottom:1px solid var(--border);}
-    .nav-drawer-logo{font-size:1rem;font-weight:800;color:var(--navy);letter-spacing:-.02em;}
-    .nav-drawer-logo span{color:var(--crimson);}
-    .nav-drawer-close{width:32px;height:32px;border-radius:50%;background:var(--mist);border:none;color:var(--muted);font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;}
-    .nav-drawer-body{padding:14px 12px;flex:1;}
-    .nav-drawer-section{font-size:.62rem;font-weight:700;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;padding:0 10px;margin:14px 0 6px;}
-    .nav-drawer-section:first-child{margin-top:0;}
-    .nav-drawer-link{display:flex;align-items:center;gap:11px;padding:11px 14px;border-radius:10px;font-size:.9rem;font-weight:500;color:var(--text);text-decoration:none;border:none;background:transparent;width:100%;text-align:left;cursor:pointer;font-family:inherit;margin-bottom:2px;transition:background .15s,color .15s;}
-    .nav-drawer-link:hover{background:var(--sky-pale);color:var(--navy);}
-    .nav-drawer-link.active{background:var(--navy);color:var(--white);}
-    .nav-drawer-link .nd-icon{font-size:1.1rem;width:22px;text-align:center;flex-shrink:0;}
-    .nav-drawer-sos{background:var(--crimson);color:var(--white);margin-top:10px;border-radius:10px;padding:13px 16px;font-weight:700;}
-    .nav-drawer-sos:hover{background:var(--crimson-h);color:var(--white);}
-    @media(max-width:768px){
-      .mob-menu-btn{display:flex;}
-      .topbar-nav{display:none;}
-      .topbar{padding:0 12px;gap:8px;}
-      .topbar-logo-text .t2{display:none;}
+    
+    /* ═══════════════════════════════════════════════════════
+       MOBILE RESPONSIVE — shared across all pages
+       ═══════════════════════════════════════════════════════ */
+
+    /* 1. Hamburger button: hidden on desktop, shown on mobile */
+    .mob-menu-btn {
+      display: none;
+      width: 38px; height: 38px; border-radius: 9px;
+      background: var(--mist); border: 1.5px solid var(--border);
+      color: var(--navy); font-size: 1.2rem;
+      align-items: center; justify-content: center;
+      cursor: pointer; flex-shrink: 0;
+      transition: background .15s;
+    }
+    .mob-menu-btn:hover { background: var(--sky-pale); }
+
+    /* 2. Nav drawer */
+    .nav-drawer {
+      position: fixed; top: 0; right: 0; bottom: 0; z-index: 1100;
+      width: min(82vw, 300px); background: var(--white);
+      box-shadow: -6px 0 32px rgba(15,35,64,0.18);
+      transform: translateX(100%);
+      transition: transform .28s cubic-bezier(.4,0,.2,1);
+      display: flex; flex-direction: column; overflow-y: auto;
+    }
+    .nav-drawer.open { transform: translateX(0); }
+    .nav-drawer-backdrop {
+      position: fixed; inset: 0; z-index: 1099;
+      background: rgba(15,35,64,0.45); backdrop-filter: blur(3px);
+      opacity: 0; pointer-events: none; transition: opacity .25s;
+    }
+    .nav-drawer-backdrop.open { opacity: 1; pointer-events: all; }
+    .nav-drawer-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 18px 12px; border-bottom: 1px solid var(--border);
+    }
+    .nav-drawer-logo { font-size: 1rem; font-weight: 800; color: var(--navy); letter-spacing: -.02em; }
+    .nav-drawer-logo span { color: var(--crimson); }
+    .nav-drawer-close {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: var(--mist); border: none; color: var(--muted);
+      font-size: 1rem; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .nav-drawer-body { padding: 14px 12px; flex: 1; }
+    .nav-drawer-section {
+      font-size: .62rem; font-weight: 700; color: var(--muted);
+      letter-spacing: .1em; text-transform: uppercase;
+      padding: 0 10px; margin: 14px 0 6px;
+    }
+    .nav-drawer-section:first-child { margin-top: 0; }
+    .nav-drawer-link {
+      display: flex; align-items: center; gap: 11px;
+      padding: 11px 14px; border-radius: 10px;
+      font-size: .9rem; font-weight: 500; color: var(--text);
+      text-decoration: none; border: none; background: transparent;
+      width: 100%; text-align: left; cursor: pointer;
+      font-family: inherit; margin-bottom: 2px;
+      transition: background .15s, color .15s;
+    }
+    .nav-drawer-link:hover { background: var(--sky-pale); color: var(--navy); }
+    .nav-drawer-link.active { background: var(--navy); color: var(--white); }
+    .nav-drawer-link .nd-icon { font-size: 1.1rem; width: 22px; text-align: center; flex-shrink: 0; }
+    .nav-drawer-sos {
+      background: var(--crimson); color: var(--white) !important;
+      margin-top: 10px; border-radius: 10px;
+      padding: 13px 16px; font-weight: 700;
+    }
+    .nav-drawer-sos:hover { background: var(--crimson-h); }
+
+    /* Sign-in inside drawer */
+    .nav-drawer-signin {
+      margin: 12px 0 0;
+      padding: 14px;
+      background: linear-gradient(135deg, var(--navy-deep), var(--navy-mid));
+      border-radius: 12px;
+    }
+    .nav-drawer-signin-title {
+      font-size: 0.78rem; font-weight: 700; color: var(--white);
+      margin-bottom: 10px; text-align: center;
+    }
+    .nav-drawer-google-wrap { display: flex; justify-content: center; transform: scale(0.88); transform-origin: center; }
+
+    /* 3. On mobile: topbar adjustments */
+    @media (max-width: 768px) {
+      /* show hamburger */
+      .mob-menu-btn { display: flex; }
+      /* hide desktop nav links */
+      .topbar-nav { display: none !important; }
+      /* hide desktop sidebar */
+      .sidebar { display: none !important; }
+      /* hide the full Google sign-in button in topbar — too wide */
+      .btn-signin-wrap { display: none !important; }
+      /* show slim user avatar if logged in */
+      /* keep SOS button but make it icon-only on very small screens */
+      .btn-sos .sos-text { display: none; }
+      /* shrink topbar padding */
+      .topbar { padding: 0 14px; gap: 8px; }
+      /* hero padding */
+      .hero { padding: 36px 20px 32px !important; }
+      /* main wrap single column */
+      .main-wrap { grid-template-columns: 1fr !important; }
+      /* content grid single column */
+      .content-grid { grid-template-columns: 1fr !important; }
+      /* feature tiles single column */
+      .feature-tiles { grid-template-columns: 1fr !important; }
+      /* main column padding */
+      .main-column { padding: 20px 16px !important; }
+      /* footer single column */
+      .footer { grid-template-columns: 1fr !important; padding: 32px 20px !important; }
+      /* welcome banner */
+      .welcome-banner { margin: 12px 16px 0 !important; }
+      /* news items: hide source column on tiny screens */
+      .news-source { display: none; }
+      .news-item { grid-template-columns: auto 1fr !important; }
+      /* side-column becomes inline below main */
+      .side-column { border-top: 1px solid var(--border); padding: 20px 16px; }
+    }
+
+    @media (max-width: 400px) {
+      /* icon-only SOS on tiny phones */
+      .btn-sos { padding: 7px 10px; font-size: 0.75rem; }
+      /* hide user name in topbar, just show avatar */
+      .btn-user-name { display: none; }
     }
 
   </style>
@@ -161,7 +261,7 @@
 
 <nav class="topbar">
   <a class="topbar-logo" href="/app/home.html">
-    <img src="logo.png" alt="YatraGuard AI"/>
+    <img src="logo.png">    
     <div class="topbar-logo-text">
       <div class="t1">Yatra<span class="r">Guard</span> <span class="b">AI</span></div>
       <div class="t2">Safety Companion · Nepal</div>
@@ -185,7 +285,7 @@
       <span style="font-size:0.65rem;color:var(--muted);">▼</span>
     </button>
     <button class="mob-menu-btn" onclick="openNavDrawer()" aria-label="Open menu">☰</button>
-    <button class="btn-sos" onclick="openModal('sosModal')">🆘 SOS</button>
+    <button class="btn-sos" onclick="openModal('sosModal')">🆘 <span class="sos-text">SOS</span></button>
   </div>
 </nav>
 
@@ -574,8 +674,11 @@
   }
 </script>
 
-<!-- NAV DRAWER -->
+
+<!-- NAV DRAWER BACKDROP -->
 <div class="nav-drawer-backdrop" id="navBackdrop" onclick="closeNavDrawer()"></div>
+
+<!-- NAV DRAWER -->
 <div class="nav-drawer" id="navDrawer">
   <div class="nav-drawer-header">
     <div class="nav-drawer-logo">Yatra<span>Guard</span> AI</div>
@@ -587,14 +690,60 @@
     <a class="nav-drawer-link" href="/app/map.html"><span class="nd-icon">🗺️</span>Route Map</a>
     <a class="nav-drawer-link active" href="/app/vitals.html"><span class="nd-icon">⌚</span>Vitals</a>
     <a class="nav-drawer-link" href="/app/about.html"><span class="nd-icon">ℹ️</span>About</a>
-    <div class="nav-drawer-section">Emergency</div>
-    <button class="nav-drawer-link nav-drawer-sos" onclick="closeNavDrawer();openModal('sosModal')"><span class="nd-icon">🆘</span>Emergency SOS</button>
+    
+    <div class="nav-drawer-section">Safety</div>
+    <button class="nav-drawer-link nav-drawer-sos" onclick="closeNavDrawer(); openModal('sosModal')">
+      <span class="nd-icon">🆘</span> Emergency SOS
+    </button>
+    <div class="nav-drawer-section">Account</div>
+    <div class="nav-drawer-signin" id="drawerSigninSection">
+      <div class="nav-drawer-signin-title">Sign in to YatraGuard AI</div>
+      <div class="nav-drawer-google-wrap">
+        <div class="g_id_signin"
+          data-type="standard"
+          data-shape="rectangular"
+          data-theme="filled_blue"
+          data-text="signin_with"
+          data-size="large"
+          data-logo_alignment="left"
+          data-width="240">
+        </div>
+      </div>
+    </div>
+    <button class="nav-drawer-link" id="drawerSignOut" style="display:none; margin-top:8px;" onclick="closeNavDrawer(); signOut()">
+      <span class="nd-icon">🚪</span> Sign Out
+    </button>
   </div>
 </div>
+
 <script>
-function openNavDrawer(){document.getElementById('navDrawer').classList.add('open');document.getElementById('navBackdrop').classList.add('open');document.body.style.overflow='hidden';}
-function closeNavDrawer(){document.getElementById('navDrawer').classList.remove('open');document.getElementById('navBackdrop').classList.remove('open');document.body.style.overflow='';}
-document.addEventListener('keydown',function(e){if(e.key==='Escape')closeNavDrawer();});
+function openNavDrawer() {
+  document.getElementById('navDrawer').classList.add('open');
+  document.getElementById('navBackdrop').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeNavDrawer() {
+  document.getElementById('navDrawer').classList.remove('open');
+  document.getElementById('navBackdrop').classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeNavDrawer();
+});
+// Sync drawer sign-in state when applyLogin/signOut runs
+(function() {
+  var _orig_applyLogin = typeof applyLogin !== 'undefined' ? applyLogin : null;
+  // We patch via MutationObserver on the userBtn instead
+  var ob = new MutationObserver(function() {
+    var visible = document.getElementById('userBtn') && document.getElementById('userBtn').classList.contains('visible');
+    var drawerSI = document.getElementById('drawerSigninSection');
+    var drawerSO = document.getElementById('drawerSignOut');
+    if (drawerSI) drawerSI.style.display = visible ? 'none' : 'block';
+    if (drawerSO) drawerSO.style.display = visible ? 'flex' : 'none';
+  });
+  var userBtn = document.getElementById('userBtn');
+  if (userBtn) ob.observe(userBtn, {attributes: true, attributeFilter: ['class']});
+})();
 </script>
 
 </body>
