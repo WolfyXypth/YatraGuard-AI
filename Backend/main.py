@@ -1,13 +1,18 @@
-
 from __future__ import annotations
 
-from datetime import datetime, timezone
+import os
 from typing import Optional
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 
-class ReadingIn(BaseModel):
+import simulation
 
+
+# ── Models ────────────────────────────────────────────────────────────────────
+
+class ReadingIn(BaseModel):
     altitude_m: float = Field(..., ge=0, le=8849, description="Current altitude in metres")
     previous_altitude_m: float = Field(..., ge=0, le=8849, description="Altitude at start of today's climb")
     hours_to_climb: float = Field(..., gt=0, le=24, description="Hours taken to climb from previous to current altitude")
@@ -20,8 +25,8 @@ class ReadingIn(BaseModel):
     dizziness: bool = False
     nausea: bool = False
     shortness_of_breath: bool = False
-    confusion: bool = False 
-    loss_of_balance: bool = False  
+    confusion: bool = False
+    loss_of_balance: bool = False
 
     @field_validator("spo2")
     @classmethod
@@ -32,84 +37,55 @@ class ReadingIn(BaseModel):
 
 
 class RiskOut(BaseModel):
-    risk_score: int                  # 0–100
-    risk_level: str                  # Low / Moderate / High / Very High / Critical
+    risk_score: int
+    risk_level: str
     ascent_rate_m_per_hour: float
-    ascent_rate_m_per_day: float     # 24 h for easy comparison
-    safe_rate: bool                  # True if within WMS guideline
+    ascent_rate_m_per_day: float
+    safe_rate: bool
     conditions: list[str]
     recommendations: list[str]
     score_breakdown: dict
 
 
+# ── Scoring helpers ────────────────────────────────────────────────────────────
 
 def _ascent_points(gained_m: float, rate_m_per_hour: float, current_alt: float) -> int:
-
     rate_per_day = rate_m_per_hour * 8
-
     if current_alt < 2750:
-        # 2750 m in one day is the low-risk ceiling
-        if rate_per_day <= 1500:   # reasonable for low altitude
-            return 0
-        return 5
-
+        return 0 if rate_per_day <= 1500 else 5
     if current_alt < 3000:
-        if rate_per_day <= 800:
-            return 5
-        if rate_per_day <= 1200:
-            return 12
+        if rate_per_day <= 800:  return 5
+        if rate_per_day <= 1200: return 12
         return 20
-
-    # Above 3000 m: limit is 500 m/day
-    if rate_per_day <= 500:
-        return 5    # nominal altitude exposure even at safe rate
-    if rate_per_day <= 700:
-        return 15   # slightly fast
-    if rate_per_day <= 1000:
-        return 28   # notably fast — significant AMS risk
-    if rate_per_day <= 1500:
-        return 40   # dangerously fast
-    return 55       # extreme rate — very high AMS/HAPE/HACE risk
+    if rate_per_day <= 500:  return 5
+    if rate_per_day <= 700:  return 15
+    if rate_per_day <= 1000: return 28
+    if rate_per_day <= 1500: return 40
+    return 55
 
 
 def _spo2_points(spo2: float, altitude_m: float) -> int:
-    """
-    SpO2 is altitude-adjusted. Expected resting ranges:
-      < 2500 m  → ≥ 94 %
-      2500–3500 m → ≥ 90 %
-      3500–5500 m → ≥ 85 %
-      > 5500 m  → ≥ 80 %
-    Source: ISMM consensus; Hacé Cuentas altitude calculator (updated June 2026)
-    """
     if altitude_m < 2500:
         if spo2 >= 94: return 0
         if spo2 >= 90: return 8
         if spo2 >= 85: return 18
         return 30
-
     if altitude_m < 3500:
         if spo2 >= 90: return 0
         if spo2 >= 85: return 10
         if spo2 >= 80: return 22
         return 35
-
     if altitude_m < 5500:
         if spo2 >= 85: return 0
         if spo2 >= 80: return 12
         if spo2 >= 75: return 25
         return 38
-
-    # > 5500 m extreme altitude
     if spo2 >= 80: return 0
     if spo2 >= 75: return 12
     return 30
 
 
 def _hr_points(hr: int) -> int:
-    """
-    Resting tachycardia at altitude = sympathetic stress.
-    Normal resting HR: 60–100 bpm (AHA).
-    """
     if hr <= 100: return 0
     if hr <= 110: return 5
     if hr <= 120: return 10
@@ -118,7 +94,6 @@ def _hr_points(hr: int) -> int:
 
 
 def _rr_points(rr: Optional[float]) -> int:
-    """Elevated respiratory rate at rest is an early HAPE warning."""
     if rr is None: return 0
     if rr <= 20: return 0
     if rr <= 24: return 5
@@ -127,11 +102,6 @@ def _rr_points(rr: Optional[float]) -> int:
 
 
 def _symptom_points(r: ReadingIn) -> int:
-    """
-    Symptom weights based on 2018 Lake Louise Score severity tiers.
-    Confusion / loss_of_balance are HACE criteria — carry extra weight here
-    but also trigger immediate recommendations regardless of total score.
-    """
     pts = 0
     if r.headache:             pts += 10
     if r.dizziness:            pts += 8
@@ -143,25 +113,17 @@ def _symptom_points(r: ReadingIn) -> int:
 
 
 def _combination_penalty(r: ReadingIn, gained_m: float) -> tuple[int, list[str]]:
-    """Extra penalties for dangerous co-occurring findings."""
     penalty = 0
     flags: list[str] = []
-
-    # Fast climb + low SpO2: the body hasn't caught up
     if gained_m > 500 and r.spo2 < 88 and r.altitude_m >= 3000:
         penalty += 15
         flags.append("Rapid ascent with hypoxia — high AMS/HAPE risk")
-
-    # HAPE pattern: dyspnoea + hypoxia at altitude
     if r.shortness_of_breath and r.spo2 < 90 and r.altitude_m >= 2500:
         penalty += 18
         flags.append("Possible HAPE: dyspnoea at rest with low SpO2")
-
-    # HACE pattern: neurological signs at altitude (WMS 2024: descend immediately)
     if (r.confusion or r.loss_of_balance) and r.altitude_m >= 2500:
         penalty += 20
         flags.append("HACE suspected: neurological signs — immediate descent required")
-
     return penalty, flags
 
 
@@ -174,7 +136,6 @@ def score_to_level(score: int) -> str:
 
 
 def recommend(level: str, r: ReadingIn, flags: list[str], rate_per_day: float, safe_rate: bool) -> list[str]:
-    # HACE overrides everything. neurological signs = evacuate
     if r.confusion or r.loss_of_balance:
         return [
             "IMMEDIATE DESCENT — do not wait",
@@ -183,14 +144,12 @@ def recommend(level: str, r: ReadingIn, flags: list[str], rate_per_day: float, s
             "Activate emergency evacuation",
             "Do not leave trekker alone",
         ]
-
     if level == "Low":
         recs = ["Conditions are safe — continue at current pace"]
         if not safe_rate:
             recs.append(f"Ascent rate ({rate_per_day:.0f} m/day equivalent) exceeds the WMS guideline of 500 m/day above 3000 m — consider slowing down")
         recs.append("Stay hydrated (3–4 L water/day)")
         return recs
-
     if level == "Moderate":
         return [
             "Stop ascending — rest at current altitude",
@@ -199,7 +158,6 @@ def recommend(level: str, r: ReadingIn, flags: list[str], rate_per_day: float, s
             "Monitor SpO2 and heart rate every 30 minutes",
             "Descend if symptoms worsen",
         ]
-
     if level == "High":
         return [
             "Do NOT ascend further",
@@ -208,7 +166,6 @@ def recommend(level: str, r: ReadingIn, flags: list[str], rate_per_day: float, s
             "Seek medical evaluation as soon as possible",
             "Monitor every 15 minutes",
         ]
-
     if level == "Very High":
         return [
             "Descend at least 500–1000 m immediately",
@@ -216,8 +173,6 @@ def recommend(level: str, r: ReadingIn, flags: list[str], rate_per_day: float, s
             "Contact rescue services",
             "Do not wait — descend even at night if necessary",
         ]
-
-    # Critical
     return [
         "MEDICAL EMERGENCY — evacuate immediately",
         "Descend as far and as fast as possible",
@@ -230,20 +185,17 @@ def recommend(level: str, r: ReadingIn, flags: list[str], rate_per_day: float, s
 def calculate_risk(r: ReadingIn) -> RiskOut:
     gained_m = max(0.0, r.altitude_m - r.previous_altitude_m)
     rate_m_per_hour = gained_m / r.hours_to_climb
-    rate_m_per_day = rate_m_per_hour * 8  # equivalent daily rate
-
-    # WMS safe rate: ≤ 500 m/day above 3000 m
+    rate_m_per_day = rate_m_per_hour * 8
     safe_rate = (r.altitude_m < 3000) or (rate_m_per_day <= 500)
 
-    # Score components
-    a_pts  = _ascent_points(gained_m, rate_m_per_hour, r.altitude_m)
-    s_pts  = _spo2_points(r.spo2, r.altitude_m)
-    hr_pts = _hr_points(r.heart_rate)
-    rr_pts = _rr_points(r.respiratory_rate)
+    a_pts   = _ascent_points(gained_m, rate_m_per_hour, r.altitude_m)
+    s_pts   = _spo2_points(r.spo2, r.altitude_m)
+    hr_pts  = _hr_points(r.heart_rate)
+    rr_pts  = _rr_points(r.respiratory_rate)
     sym_pts = _symptom_points(r)
     combo_pts, flags = _combination_penalty(r, gained_m)
 
-    raw = a_pts + s_pts + hr_pts + rr_pts + sym_pts + combo_pts
+    raw   = a_pts + s_pts + hr_pts + rr_pts + sym_pts + combo_pts
     score = min(raw, 100)
     level = score_to_level(score)
 
@@ -279,82 +231,58 @@ def calculate_risk(r: ReadingIn) -> RiskOut:
     )
 
 
+# ── App ────────────────────────────────────────────────────────────────────────
+
 app = FastAPI(
-    title="Sagarmatha Guard",
+    title="YatraGuard-AI / Sagarmatha Guard",
     description="Altitude risk assessment based on ascent rate and vitals (WMS 2024).",
     version="2.0.0",
 )
 
+# Serve all HTML pages from the "frontend" folder.
+# Put home.html, map.html, vitals.html, about.html inside a folder called "frontend"
+# that sits next to this main.py file.
+app.mount("/app", StaticFiles(directory="../frontend", html=True), name="frontend")
 
-@app.get("/")
+
+@app.get("/", include_in_schema=False)
 def root():
-    return {"status": "ok", "docs": "/docs"}
+    # Redirect bare root to the home page
+    return RedirectResponse(url="/app/home.html")
 
 
 @app.post("/risk", response_model=RiskOut)
 def assess_risk(reading: ReadingIn):
     """
     Submit a smartwatch reading and get an instant risk assessment.
-
-    The primary risk driver is **ascent rate** (metres gained ÷ hours taken).
-    Vitals (SpO2, heart rate, respiratory rate) and symptoms add further points.
-
     WMS 2024 safe rate: ≤ 500 m per day above 3000 m.
     """
     if reading.previous_altitude_m > reading.altitude_m:
         raise HTTPException(
             status_code=422,
-            detail="previous_altitude_m cannot be higher than altitude_m for an ascent reading. "
-                   "If descending, risk is not assessed."
+            detail="previous_altitude_m cannot be higher than altitude_m for an ascent reading."
         )
     return calculate_risk(reading)
 
-from fastapi import FastAPI, BackgroundTasks 
-from fastapi.responses import HTMLResponse
-import simulation 
-app = FastAPI()
 
-@app.get("/scan-demo")
-async def scan_demo(background_tasks: BackgroundTasks):
+@app.get("/scan-demo", include_in_schema=False)
+async def scan_demo(request: Request, background_tasks: BackgroundTasks):
     """
-    Triggered instantly on QR scan. Delivers the phone screen, 
-    then runs the simulation loop in the background.
+    QR scan entry point. Immediately redirects to home.html,
+    then fires the simulation in the background so the terminal shows live output.
     """
-    MY_CURRENT_URL = "https://backless-flatly-freebie.ngrok-free.dev" 
-    background_tasks.add_task(simulation.run_user_simulation, MY_CURRENT_URL)
-    
+    public_url = os.environ.get(
+        "NGROK_URL",
+        str(request.base_url).rstrip("/")
+    )
+    print(f"[scan-demo] Scan received — simulation will post to {public_url}/risk")
+    background_tasks.add_task(simulation.run_user_simulation, public_url)
 
-    html_content = """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>YatraGuard-AI Demo</title>
-        <style>
-            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background-color: #0f172a; color: #f8fafc; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; text-align: center; }
-            .card { background: #1e293b; padding: 2.5rem 2rem; border-radius: 16px; border: 1px solid #334155; max-width: 85%; }
-            .status-icon { font-size: 3.5rem; margin-bottom: 1rem; animation: pulse 2s infinite; }
-            h1 { font-size: 1.6rem; color: #38bdf8; margin: 0 0 0.75rem 0; }
-            p { color: #94a3b8; font-size: 0.95rem; line-height: 1.6; margin: 0 0 1.5rem 0; }
-            .badge { background-color: #059669; color: white; padding: 0.6rem 1.2rem; border-radius: 9999px; font-weight: 600; font-size: 0.85rem; display: inline-block; }
-            @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .6; } }
-        </style>
-    </head>
-    <body>
-        <div class="card">
-            <div class="status-icon">🏔️</div>
-            <h1>YatraGuard-AI Active</h1>
-            <p>Your phone has triggered a personal vitals stream. Watch the master console terminal to see the AI evaluate your risk levels in real time!</p>
-            <span class="badge">📡 Simulation Initiated</span>
-        </div>
-    </body>
-    </html>
-    """
-    return HTMLResponse(content=html_content, status_code=200)
+    # Send the user straight to the real frontend home page
+    return RedirectResponse(url="/app/home.html", status_code=302)
+
 
 if __name__ == "__main__":
     import uvicorn
-    import os
-    # Pull port from the cloud environment, default to 8000 if running locally
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run("main:app", host="0.0.0.0", port=port)

@@ -132,7 +132,7 @@
 </div>
 
 <nav class="topbar">
-  <a class="topbar-logo" href="home.html">
+  <a class="topbar-logo" href="/app/home.html">
     <img src="logo.png" alt="YatraGuard AI"/>
     <div class="topbar-logo-text">
       <div class="t1">Yatra<span class="r">Guard</span> <span class="b">AI</span></div>
@@ -140,10 +140,10 @@
     </div>
   </a>
   <nav class="topbar-nav">
-    <a href="home.html">Home</a>
-    <a href="map.html">Route Map</a>
-    <a href="vitals.html" class="active">Vitals</a>
-    <a href="about.html">About</a>
+    <a href="/app/home.html">Home</a>
+    <a href="/app/map.html">Route Map</a>
+    <a href="/app/vitals.html" class="active">Vitals</a>
+    <a href="/app/about.html">About</a>
   </nav>
   <div class="topbar-right">
     <button class="btn-howto" onclick="openModal('howModal')" title="How to use YatraGuard AI">?</button>
@@ -163,11 +163,11 @@
 <div class="main-wrap">
   <aside class="sidebar">
     <div class="sidebar-section-label">Navigation</div>
-    <a class="sidebar-link" href="home.html"><span class="sidebar-icon">🏠</span> Home</a>
-    <a class="sidebar-link" href="about.html"><span class="sidebar-icon">ℹ️</span> About</a>
+    <a class="sidebar-link" href="/app/home.html"><span class="sidebar-icon">🏠</span> Home</a>
+    <a class="sidebar-link" href="/app/about.html"><span class="sidebar-icon">ℹ️</span> About</a>
     <div class="sidebar-section-label">Features</div>
-    <a class="sidebar-link" href="map.html"><span class="sidebar-icon">🗺️</span> Route Map <span class="sidebar-coming">Soon</span></a>
-    <a class="sidebar-link active" href="vitals.html"><span class="sidebar-icon">⌚</span> Vitals <span class="sidebar-coming">Soon</span></a>
+    <a class="sidebar-link" href="/app/map.html"><span class="sidebar-icon">🗺️</span> Route Map <span class="sidebar-coming">Soon</span></a>
+    <a class="sidebar-link active" href="/app/vitals.html"><span class="sidebar-icon">⌚</span> Vitals</a>
     <div class="sidebar-section-label">Safety</div>
     <button class="sidebar-link" onclick="openModal('sosModal')"><span class="sidebar-icon">🆘</span> Emergency SOS <span class="sidebar-badge">!</span></button>
     <button class="sidebar-link" onclick="openModal('howModal')"><span class="sidebar-icon">📖</span> How to Use</button>
@@ -179,17 +179,322 @@
   <div class="content">
     <div class="hero">
       <div class="hero-inner">
-        <div class="hero-eyebrow"><span class="hero-eyebrow-dot"></span> Apple Watch · Coming Soon</div>
+        <div class="hero-eyebrow"><span class="hero-eyebrow-dot"></span> YatraGuard AI · Live Simulation Console</div>
         <h1>Health <span>Vitals</span></h1>
-        <p>Connect your Apple Watch to monitor heart rate, SpO₂, HRV, and body temperature in real time on trail.</p>
+        <p>Real-time trekker vitals simulation — watch SpO₂, heart rate, and ascent rate update stage by stage as the AI evaluates altitude sickness risk using WMS 2024 guidelines.</p>
       </div>
     </div>
-    <div class="placeholder-screen">
-      <div class="placeholder-icon">⌚</div>
-      <div class="placeholder-title">Vitals — Coming Soon</div>
-      <div class="placeholder-sub">Pair your Apple Watch Ultra or Series 9+ to get real-time biometric monitoring. YatraGuard AI analyses SpO₂, heart rate variability, and ascent pace to flag altitude sickness risk early.</div>
-      <div class="placeholder-badge">🔒 Sign in + pair Apple Watch to unlock</div>
+    <div class="vitals-console">
+
+      <!-- Top controls bar -->
+      <div class="vc-topbar">
+        <div class="vc-status-row">
+          <span class="vc-dot" id="vcDot"></span>
+          <span class="vc-status-label" id="vcStatusLabel">Idle — press Run to start</span>
+          <span class="vc-stage-chip" id="vcStageChip" style="display:none"></span>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <span class="vc-speed-label">Speed</span>
+          <select id="vcSpeed" class="vc-speed-select">
+            <option value="5000">Normal (5 s)</option>
+            <option value="2000">Fast (2 s)</option>
+            <option value="500">Instant</option>
+          </select>
+          <button class="vc-run-btn" id="vcRunBtn" onclick="vcStart()">▶ Run simulation</button>
+        </div>
+      </div>
+
+      <!-- Vitals cards -->
+      <div class="vc-vitals-grid" id="vcVitalsGrid">
+        <div class="vc-vital-card">
+          <div class="vc-vital-label">Altitude</div>
+          <div class="vc-vital-val" id="vcAlt">—</div>
+          <div class="vc-vital-unit">metres</div>
+          <div class="vc-vital-delta" id="vcDAlt"></div>
+        </div>
+        <div class="vc-vital-card">
+          <div class="vc-vital-label">Ascent rate</div>
+          <div class="vc-vital-val" id="vcRate">—</div>
+          <div class="vc-vital-unit">m / day equiv.</div>
+          <div class="vc-vital-delta" id="vcDRate"></div>
+        </div>
+        <div class="vc-vital-card">
+          <div class="vc-vital-label">Heart rate</div>
+          <div class="vc-vital-val" id="vcHR">—</div>
+          <div class="vc-vital-unit">bpm</div>
+          <div class="vc-vital-delta" id="vcDHR"></div>
+        </div>
+        <div class="vc-vital-card">
+          <div class="vc-vital-label">SpO₂</div>
+          <div class="vc-vital-val" id="vcSpo2">—</div>
+          <div class="vc-vital-unit">%</div>
+          <div class="vc-vital-delta" id="vcDSpo2"></div>
+        </div>
+      </div>
+
+      <!-- Risk score -->
+      <div class="vc-risk-card" id="vcRiskCard">
+        <div class="vc-risk-header">
+          <div>
+            <div class="vc-risk-score-label">Risk score</div>
+            <div class="vc-risk-score-val" id="vcRScore">—</div>
+          </div>
+          <div class="vc-risk-level-badge" id="vcRLevel">Awaiting data</div>
+        </div>
+        <div class="vc-bar-track"><div class="vc-bar-fill" id="vcBar" style="width:0%"></div></div>
+        <div class="vc-breakdown-grid" id="vcBreakdown">
+          <div class="vc-br-item"><span>Ascent pts</span><span>—</span></div>
+          <div class="vc-br-item"><span>SpO₂ pts</span><span>—</span></div>
+          <div class="vc-br-item"><span>HR pts</span><span>—</span></div>
+          <div class="vc-br-item"><span>Symptom pts</span><span>—</span></div>
+          <div class="vc-br-item"><span>Combo penalty</span><span>—</span></div>
+          <div class="vc-br-item vc-br-total"><span>Total</span><span id="vcBrTotal">—</span></div>
+        </div>
+      </div>
+
+      <!-- Symptoms -->
+      <div class="vc-section-label">Symptoms</div>
+      <div class="vc-sym-row">
+        <span class="vc-sym" id="vs-headache">Headache</span>
+        <span class="vc-sym" id="vs-dizziness">Dizziness</span>
+        <span class="vc-sym" id="vs-nausea">Nausea</span>
+        <span class="vc-sym" id="vs-shortness_of_breath">Shortness of breath</span>
+        <span class="vc-sym" id="vs-confusion">Confusion</span>
+        <span class="vc-sym" id="vs-loss_of_balance">Loss of balance</span>
+      </div>
+
+      <!-- Recommendations -->
+      <div class="vc-section-label">Recommendations</div>
+      <div class="vc-recs-card" id="vcRecs">
+        <div class="vc-recs-empty">No data yet</div>
+      </div>
+
+      <!-- Stage log -->
+      <div class="vc-section-label">Stage log</div>
+      <div class="vc-log-card">
+        <div class="vc-log-head">
+          <span>Time</span><span>Stage</span><span>Score</span><span>Level</span>
+        </div>
+        <div id="vcLog"><div class="vc-log-empty">Awaiting simulation…</div></div>
+      </div>
+
     </div>
+
+    <style>
+      .vitals-console{padding:28px 36px;max-width:900px}
+      @media(max-width:600px){.vitals-console{padding:16px}}
+
+      /* top controls */
+      .vc-topbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:24px}
+      .vc-status-row{display:flex;align-items:center;gap:10px}
+      .vc-dot{width:10px;height:10px;border-radius:50%;background:var(--border);flex-shrink:0;transition:background .3s}
+      .vc-dot.active{background:#27ae60;animation:vcblink 1.2s infinite}
+      .vc-dot.done{background:#27ae60}
+      @keyframes vcblink{0%,100%{opacity:1}50%{opacity:.25}}
+      .vc-status-label{font-size:.85rem;color:var(--muted);font-weight:500}
+      .vc-stage-chip{font-size:.72rem;font-family:'JetBrains Mono',monospace;background:var(--navy);color:#fff;padding:3px 10px;border-radius:20px;font-weight:600;letter-spacing:.04em}
+      .vc-speed-label{font-size:.8rem;color:var(--muted)}
+      .vc-speed-select{font-size:.8rem;border:1.5px solid var(--border);border-radius:8px;padding:5px 10px;background:var(--white);color:var(--text);font-family:inherit;cursor:pointer}
+      .vc-run-btn{background:var(--navy);color:#fff;font-weight:700;font-size:.85rem;padding:8px 20px;border-radius:9px;border:none;cursor:pointer;transition:background .15s;letter-spacing:.02em;display:flex;align-items:center;gap:6px}
+      .vc-run-btn:hover{background:var(--navy-mid)}
+      .vc-run-btn:disabled{opacity:.45;cursor:not-allowed}
+
+      /* vitals grid */
+      .vc-vitals-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:18px}
+      .vc-vital-card{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:16px 18px}
+      .vc-vital-label{font-size:.68rem;font-weight:700;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px}
+      .vc-vital-val{font-size:2rem;font-weight:700;color:var(--navy);line-height:1;font-family:'JetBrains Mono',monospace;transition:color .3s}
+      .vc-vital-unit{font-size:.72rem;color:var(--muted);margin-top:3px}
+      .vc-vital-delta{font-size:.75rem;margin-top:6px;min-height:16px}
+      .vc-delta-up{color:var(--crimson)}
+      .vc-delta-down{color:#27ae60}
+      .vc-delta-same{color:var(--muted)}
+
+      /* risk card */
+      .vc-risk-card{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:20px 22px;margin-bottom:18px}
+      .vc-risk-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px}
+      .vc-risk-score-label{font-size:.68rem;font-weight:700;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}
+      .vc-risk-score-val{font-size:2.4rem;font-weight:800;color:var(--navy);font-family:'JetBrains Mono',monospace;line-height:1;transition:color .3s}
+      .vc-risk-level-badge{font-size:.8rem;font-weight:700;padding:6px 16px;border-radius:20px;letter-spacing:.04em;transition:all .3s}
+      .vc-lvl-low{background:#eafaf1;color:#1e8449}
+      .vc-lvl-moderate{background:#fef9e7;color:#9a7d0a}
+      .vc-lvl-high{background:#fdebd0;color:#a04000}
+      .vc-lvl-veryhigh{background:#fdedec;color:var(--crimson)}
+      .vc-lvl-critical{background:var(--crimson);color:#fff}
+      .vc-bar-track{width:100%;height:10px;background:var(--mist);border-radius:5px;overflow:hidden;margin-bottom:16px}
+      .vc-bar-fill{height:100%;border-radius:5px;transition:width .7s ease,background .4s}
+      .vc-breakdown-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+      .vc-br-item{display:flex;justify-content:space-between;font-size:.75rem;color:var(--muted);background:var(--off);border-radius:7px;padding:5px 10px}
+      .vc-br-item span:last-child{font-weight:700;color:var(--navy)}
+      .vc-br-total{grid-column:1/-1;background:var(--mist);border-radius:7px}
+      .vc-br-total span:first-child{font-weight:700;color:var(--navy)}
+      .vc-br-total span:last-child{font-size:.85rem}
+
+      /* symptoms */
+      .vc-section-label{font-size:.68rem;font-weight:700;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;margin-top:4px}
+      .vc-sym-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+      .vc-sym{font-size:.8rem;padding:5px 13px;border-radius:20px;border:1.5px solid var(--border);background:var(--white);color:var(--muted);font-weight:500;transition:all .3s}
+      .vc-sym.on{border-color:var(--crimson);background:var(--danger-bg);color:var(--crimson);font-weight:700}
+
+      /* recs */
+      .vc-recs-card{background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:18px}
+      .vc-recs-empty{padding:18px;font-size:.85rem;color:var(--muted);text-align:center}
+      .vc-rec-row{display:flex;gap:12px;align-items:flex-start;padding:11px 16px;border-bottom:1px solid var(--border);font-size:.85rem;color:var(--text)}
+      .vc-rec-row:last-child{border-bottom:none}
+      .vc-rec-num{font-size:.72rem;font-weight:700;color:var(--muted);min-width:16px;margin-top:2px}
+      .vc-rec-row.urgent{background:var(--danger-bg);color:var(--crimson);font-weight:600}
+      .vc-rec-row.urgent .vc-rec-num{color:var(--crimson)}
+
+      /* log */
+      .vc-log-card{background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:8px}
+      .vc-log-head{display:grid;grid-template-columns:90px 1fr 60px 90px;gap:8px;padding:8px 16px;background:var(--off);border-bottom:1px solid var(--border);font-size:.68rem;font-weight:700;color:var(--muted);letter-spacing:.07em;text-transform:uppercase}
+      .vc-log-empty{padding:18px;font-size:.85rem;color:var(--muted);text-align:center}
+      .vc-log-row{display:grid;grid-template-columns:90px 1fr 60px 90px;gap:8px;padding:10px 16px;border-bottom:1px solid var(--border);font-size:.82rem;align-items:center}
+      .vc-log-row:last-child{border-bottom:none}
+      .vc-log-time{font-family:'JetBrains Mono',monospace;font-size:.75rem;color:var(--muted)}
+      .vc-log-stage{color:var(--text);font-weight:500}
+      .vc-log-score{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--navy)}
+      .vc-log-badge{font-size:.7rem;font-weight:700;padding:3px 9px;border-radius:10px}
+    </style>
+
+    <script>
+    const VC_TIMELINE = [
+      { name:"08:00 AM", stage:"Safe at checkpoint",   data:{ altitude_m:3000, previous_altitude_m:2800, hours_to_climb:2.0, heart_rate:75,  spo2:95.0, headache:false, dizziness:false, nausea:false, shortness_of_breath:false, confusion:false, loss_of_balance:false }},
+      { name:"12:00 PM", stage:"Pushing hard & tired", data:{ altitude_m:3800, previous_altitude_m:3000, hours_to_climb:4.0, heart_rate:105, spo2:88.0, headache:true,  dizziness:false, nausea:false, shortness_of_breath:false, confusion:false, loss_of_balance:false }},
+      { name:"04:00 PM", stage:"Severe hypoxia hit",   data:{ altitude_m:4500, previous_altitude_m:3800, hours_to_climb:4.0, heart_rate:120, spo2:78.0, headache:true,  dizziness:false, nausea:false, shortness_of_breath:false, confusion:true,  loss_of_balance:false }}
+    ];
+
+    function vcAscentPts(gained,rate,alt){const r=rate*8;if(alt<2750)return r<=1500?0:5;if(alt<3000){if(r<=800)return 5;if(r<=1200)return 12;return 20}if(r<=500)return 5;if(r<=700)return 15;if(r<=1000)return 28;if(r<=1500)return 40;return 55}
+    function vcSpo2Pts(s,alt){if(alt<2500){if(s>=94)return 0;if(s>=90)return 8;if(s>=85)return 18;return 30}if(alt<3500){if(s>=90)return 0;if(s>=85)return 10;if(s>=80)return 22;return 35}if(alt<5500){if(s>=85)return 0;if(s>=80)return 12;if(s>=75)return 25;return 38}if(s>=80)return 0;if(s>=75)return 12;return 30}
+    function vcHrPts(hr){if(hr<=100)return 0;if(hr<=110)return 5;if(hr<=120)return 10;if(hr<=140)return 18;return 25}
+    function vcSymPts(d){let p=0;if(d.headache)p+=10;if(d.dizziness)p+=8;if(d.nausea)p+=8;if(d.shortness_of_breath)p+=20;if(d.confusion)p+=25;if(d.loss_of_balance)p+=25;return p}
+    function vcComboPts(d,gained){let p=0;if(gained>500&&d.spo2<88&&d.altitude_m>=3000)p+=15;if(d.shortness_of_breath&&d.spo2<90&&d.altitude_m>=2500)p+=18;if((d.confusion||d.loss_of_balance)&&d.altitude_m>=2500)p+=20;return p}
+    function vcLevelKey(s){if(s<=20)return"low";if(s<=40)return"moderate";if(s<=60)return"high";if(s<=80)return"veryhigh";return"critical"}
+    function vcLevelLabel(k){return{low:"Low",moderate:"Moderate",high:"High",veryhigh:"Very High",critical:"Critical"}[k]}
+    function vcBarColor(s){if(s<=20)return"#27ae60";if(s<=40)return"#f1c40f";if(s<=60)return"#e67e22";if(s<=80)return"#c0392b";return"#7b241c"}
+    function vcBadgeClass(k){return{low:"vc-lvl-low",moderate:"vc-lvl-moderate",high:"vc-lvl-high",veryhigh:"vc-lvl-veryhigh",critical:"vc-lvl-critical"}[k]}
+    function vcLogBadgeStyle(k){return{low:"background:#eafaf1;color:#1e8449",moderate:"background:#fef9e7;color:#9a7d0a",high:"background:#fdebd0;color:#a04000",veryhigh:"background:#fdedec;color:#c0392b",critical:"background:#c0392b;color:#fff"}[k]}
+
+    function vcRecs(lk,d,rpd,safe){
+      if(d.confusion||d.loss_of_balance)return{urgent:true,list:["IMMEDIATE DESCENT — do not wait","Administer dexamethasone 8 mg if available (WMS 2024)","Supplement oxygen to SpO₂ > 90% if available","Activate emergency evacuation","Do not leave trekker alone"]};
+      let list=[];
+      if(lk==="low"){list=["Conditions safe — continue at current pace"];if(!safe)list.push(`Ascent rate (${Math.round(rpd)} m/day) exceeds WMS guideline of 500 m/day above 3000 m`);list.push("Stay hydrated (3–4 L water/day)");return{urgent:false,list}}
+      if(lk==="moderate")return{urgent:false,list:["Stop ascending — rest at current altitude",`Ascent rate (~${Math.round(rpd)} m/day) exceeds safe limit of 500 m/day`,"Drink fluids, avoid exertion for 24 hours","Monitor SpO₂ and heart rate every 30 minutes","Descend if symptoms worsen"]};
+      if(lk==="high")return{urgent:false,list:["Do NOT ascend further","Rest at current altitude; descend if no improvement in 12–24 h","Use supplemental oxygen if available","Seek medical evaluation as soon as possible","Monitor every 15 minutes"]};
+      if(lk==="veryhigh")return{urgent:true,list:["Descend at least 500–1000 m immediately","Supplemental oxygen to achieve SpO₂ > 90%","Contact rescue services","Do not wait — descend even at night if necessary"]};
+      return{urgent:true,list:["MEDICAL EMERGENCY — evacuate immediately","Descend as far and as fast as possible","Supplemental oxygen at maximum flow rate","Use Gamow bag if descent is impossible","Activate helicopter rescue"]};
+    }
+
+    let vcPrev=null, vcLog=[], vcRunning=false;
+
+    function vcDelta(cur,prev,curKey,prevKey,unit,badWhenUp){
+      if(!prev)return"";
+      const d=cur-prev;
+      if(Math.abs(d)<0.01)return`<span class="vc-delta-same">no change</span>`;
+      const up=d>0;
+      const cls=(badWhenUp?up:!up)?"vc-delta-up":"vc-delta-down";
+      return`<span class="${cls}">${up?"+":""}${Math.abs(d)%1===0?d.toFixed(0):d.toFixed(1)} ${unit}</span>`;
+    }
+
+    function vcRenderStage(entry,idx){
+      const d=entry.data;
+      const gained=Math.max(0,d.altitude_m-d.previous_altitude_m);
+      const rate=gained/d.hours_to_climb;
+      const rpd=rate*8;
+      const safe=(d.altitude_m<3000)||(rpd<=500);
+      const apts=vcAscentPts(gained,rate,d.altitude_m);
+      const spts=vcSpo2Pts(d.spo2,d.altitude_m);
+      const hrpts=vcHrPts(d.heart_rate);
+      const smpts=vcSymPts(d);
+      const cpts=vcComboPts(d,gained);
+      const raw=apts+spts+hrpts+smpts+cpts;
+      const score=Math.min(raw,100);
+      const lk=vcLevelKey(score);
+
+      // vitals
+      document.getElementById("vcAlt").textContent=d.altitude_m.toLocaleString();
+      document.getElementById("vcRate").textContent=Math.round(rpd);
+      document.getElementById("vcHR").textContent=d.heart_rate;
+      document.getElementById("vcSpo2").textContent=d.spo2.toFixed(1);
+
+      if(vcPrev){
+        document.getElementById("vcDAlt").innerHTML=vcDelta(d.altitude_m,vcPrev.alt,null,null,"m",false);
+        document.getElementById("vcDRate").innerHTML=vcDelta(rpd,vcPrev.rpd,null,null,"m/day",true);
+        document.getElementById("vcDHR").innerHTML=vcDelta(d.heart_rate,vcPrev.hr,null,null,"bpm",true);
+        document.getElementById("vcDSpo2").innerHTML=vcDelta(d.spo2,vcPrev.spo2,null,null,"%",true);
+      }
+
+      // score
+      document.getElementById("vcRScore").textContent=score+" / 100";
+      const lvlEl=document.getElementById("vcRLevel");
+      lvlEl.textContent=vcLevelLabel(lk);
+      lvlEl.className="vc-risk-level-badge "+vcBadgeClass(lk);
+      const bar=document.getElementById("vcBar");
+      bar.style.width=score+"%";
+      bar.style.background=vcBarColor(score);
+
+      // breakdown
+      document.getElementById("vcBreakdown").innerHTML=
+        `<div class="vc-br-item"><span>Ascent pts</span><span>${apts}</span></div>`+
+        `<div class="vc-br-item"><span>SpO₂ pts</span><span>${spts}</span></div>`+
+        `<div class="vc-br-item"><span>HR pts</span><span>${hrpts}</span></div>`+
+        `<div class="vc-br-item"><span>Symptom pts</span><span>${smpts}</span></div>`+
+        `<div class="vc-br-item"><span>Combo penalty</span><span>${cpts}</span></div>`+
+        `<div class="vc-br-item vc-br-total"><span>Total</span><span>${score}</span></div>`;
+
+      // symptoms
+      ["headache","dizziness","nausea","shortness_of_breath","confusion","loss_of_balance"].forEach(k=>{
+        document.getElementById("vs-"+k).className="vc-sym"+(d[k]?" on":"");
+      });
+
+      // recs
+      const{urgent,list}=vcRecs(lk,d,rpd,safe);
+      document.getElementById("vcRecs").innerHTML=list.map((r,i)=>
+        `<div class="vc-rec-row${urgent?" urgent":""}"><span class="vc-rec-num">${i+1}</span><span>${r}</span></div>`
+      ).join("");
+
+      // log
+      vcLog.push({time:entry.name,stage:entry.stage,score,lk});
+      document.getElementById("vcLog").innerHTML=vcLog.map(e=>
+        `<div class="vc-log-row">
+          <span class="vc-log-time">${e.time}</span>
+          <span class="vc-log-stage">${e.stage}</span>
+          <span class="vc-log-score">${e.score}/100</span>
+          <span class="vc-log-badge" style="${vcLogBadgeStyle(e.lk)}">${vcLevelLabel(e.lk)}</span>
+        </div>`
+      ).join("");
+
+      // stage chip
+      document.getElementById("vcStageChip").textContent=`Stage ${idx+1} / ${VC_TIMELINE.length}`;
+      document.getElementById("vcStageChip").style.display="inline-block";
+      document.getElementById("vcStatusLabel").textContent=entry.name+" — "+entry.stage;
+
+      vcPrev={alt:d.altitude_m,rpd,hr:d.heart_rate,spo2:d.spo2};
+    }
+
+    async function vcStart(){
+      if(vcRunning)return;
+      vcRunning=true;vcPrev=null;vcLog=[];
+      const btn=document.getElementById("vcRunBtn");
+      btn.disabled=true;
+      const dot=document.getElementById("vcDot");
+      dot.className="vc-dot active";
+      document.getElementById("vcLog").innerHTML='<div class="vc-log-empty">Running…</div>';
+      document.getElementById("vcRecs").innerHTML='<div class="vc-recs-empty">Running…</div>';
+      const delay=parseInt(document.getElementById("vcSpeed").value);
+
+      for(let i=0;i<VC_TIMELINE.length;i++){
+        vcRenderStage(VC_TIMELINE[i],i);
+        if(i<VC_TIMELINE.length-1)await new Promise(r=>setTimeout(r,delay));
+      }
+
+      dot.className="vc-dot done";
+      document.getElementById("vcStatusLabel").textContent="Simulation complete";
+      btn.textContent="▶ Run again";
+      btn.disabled=false;
+      vcRunning=false;
+    }
+    </script>
   </div>
 </div>
 
