@@ -2,11 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>Route Map — YatraGuard AI</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
+    /* ── DESIGN TOKENS (map.html) ── */
     :root {
       --navy:#1a3a5c; --navy-deep:#0f2340; --navy-mid:#234b75;
       --crimson:#c0392b; --crimson-h:#e04030;
@@ -16,13 +18,30 @@
       --success:#1e8a5a; --success-bg:#e8f7f0;
       --danger:#c0392b; --danger-bg:#fdf0ee;
       --nav-h:64px;
+      /* livemap semantic aliases mapped to map.html palette */
+      --surface:var(--white);
+      --surface2:var(--sky-pale);
+      --blue:var(--sky);
+      --blue-dark:var(--navy);
+      --red:var(--crimson);
+      --orange:#d97706;
+      --green:#1e8a5a;
+      --text2:var(--text);
+      --muted2:var(--muted);
+      --radius:10px;
+      --shadow:0 1px 6px rgba(26,58,92,0.10);
+      --shadow-lg:0 4px 20px rgba(26,58,92,0.15);
     }
+
+    /* ── RESET ── */
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    html{scroll-behavior:smooth}
-    body{font-family:'Inter',sans-serif;background:var(--off);color:var(--text);line-height:1.6}
+    html,body{height:100%;overflow:hidden}
+    body{font-family:'Inter',sans-serif;background:var(--off);color:var(--text);line-height:1.6;display:flex;flex-direction:column;}
     a{color:inherit;text-decoration:none}
     button{font-family:inherit;cursor:pointer}
-    .topbar{position:fixed;top:0;left:0;right:0;z-index:1000;height:var(--nav-h);background:var(--white);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px;box-shadow:0 1px 12px rgba(26,58,92,0.08)}
+
+    /* ── TOPBAR (map.html) ── */
+    .topbar{position:relative;z-index:1000;height:var(--nav-h);background:var(--white);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px;box-shadow:0 1px 12px rgba(26,58,92,0.08);flex-shrink:0;}
     .topbar-logo{display:flex;align-items:center;gap:10px;flex-shrink:0}
     .topbar-logo img{width:40px;height:40px;border-radius:10px;object-fit:contain}
     .topbar-logo-text{line-height:1.15}
@@ -47,8 +66,16 @@
     .btn-sos{background:var(--crimson);color:var(--white);font-weight:700;font-size:0.8rem;padding:7px 16px;border-radius:8px;border:none;letter-spacing:0.04em;box-shadow:0 2px 10px rgba(192,57,43,0.35);transition:background 0.15s,transform 0.1s;display:flex;align-items:center;gap:6px;animation:sos-glow 2.5s ease-in-out infinite}
     @keyframes sos-glow{0%,100%{box-shadow:0 2px 10px rgba(192,57,43,0.35)}50%{box-shadow:0 2px 18px rgba(192,57,43,0.6)}}
     .btn-sos:hover{background:var(--crimson-h);transform:translateY(-1px)}
-    .main-wrap{margin-top:var(--nav-h);display:grid;grid-template-columns:220px 1fr;min-height:calc(100vh - var(--nav-h))}
-    .sidebar{background:var(--white);border-right:1px solid var(--border);padding:20px 12px;position:sticky;top:var(--nav-h);height:calc(100vh - var(--nav-h));overflow-y:auto;scrollbar-width:thin}
+    /* mobile panel toggle buttons */
+    .mob-icon-btn{display:none;background:var(--mist);border:1.5px solid var(--border);color:var(--navy);width:36px;height:36px;border-radius:9px;cursor:pointer;font-size:1.05rem;align-items:center;justify-content:center;flex-shrink:0;transition:background 0.2s}
+    .mob-icon-btn:hover{background:var(--sky-pale)}
+    .mob-icon-btn.active-panel{background:var(--navy);color:var(--white);border-color:var(--navy)}
+
+    /* ── MAIN LAYOUT ── */
+    .main-wrap{display:flex;flex:1;overflow:hidden;}
+
+    /* ── SIDEBAR (map.html) ── */
+    .sidebar{background:var(--white);border-right:1px solid var(--border);padding:20px 12px;width:220px;min-width:220px;flex-shrink:0;overflow-y:auto;scrollbar-width:thin}
     .sidebar-section-label{font-size:0.65rem;font-weight:700;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;padding:0 10px;margin-bottom:6px;margin-top:16px}
     .sidebar-section-label:first-child{margin-top:0}
     .sidebar-link{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;font-size:0.875rem;font-weight:500;color:var(--muted);cursor:pointer;margin-bottom:2px;transition:background 0.15s,color 0.15s;border:none;background:transparent;width:100%;text-align:left;text-decoration:none}
@@ -57,20 +84,154 @@
     .sidebar-icon{font-size:1.05rem;flex-shrink:0;width:20px;text-align:center}
     .sidebar-badge{margin-left:auto;background:var(--crimson);color:white;font-size:0.58rem;font-weight:700;padding:2px 7px;border-radius:10px}
     .sidebar-coming{margin-left:auto;background:var(--mist);color:var(--muted);font-size:0.58rem;font-weight:600;padding:2px 7px;border-radius:10px}
-    .content{overflow-y:auto;background:var(--off)}
-    .hero{background:linear-gradient(135deg,var(--navy-deep) 0%,var(--navy) 55%,var(--navy-mid) 100%);padding:40px 48px;position:relative;overflow:hidden}
-    .hero-inner{max-width:680px;position:relative;z-index:1}
-    .hero-eyebrow{display:inline-flex;align-items:center;gap:8px;background:rgba(90,180,214,0.15);border:1px solid rgba(90,180,214,0.3);border-radius:20px;padding:5px 14px;font-family:'JetBrains Mono',monospace;font-size:0.68rem;color:var(--sky-light);letter-spacing:0.06em;margin-bottom:20px}
-    .hero-eyebrow-dot{width:6px;height:6px;border-radius:50%;background:var(--sky);animation:blink 1.5s step-end infinite}
-    @keyframes blink{0%,100%{opacity:1}50%{opacity:0.15}}
-    .hero h1{font-family:'Playfair Display',serif;font-size:clamp(2rem,4vw,3.2rem);font-weight:900;color:var(--white);line-height:1.1;letter-spacing:-0.02em;margin-bottom:16px}
-    .hero h1 span{color:var(--sky)}
-    .hero p{font-size:1.05rem;color:rgba(168,216,236,0.9);max-width:520px;line-height:1.7;margin-bottom:0}
-    .placeholder-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:420px;text-align:center;padding:40px}
-    .placeholder-icon{font-size:3.5rem;margin-bottom:20px;opacity:0.4}
-    .placeholder-title{font-weight:700;font-size:1.2rem;color:var(--navy);margin-bottom:8px}
-    .placeholder-sub{font-size:0.9rem;color:var(--muted);max-width:380px;line-height:1.6;margin-bottom:24px}
-    .placeholder-badge{background:var(--navy);color:var(--white);font-family:'JetBrains Mono',monospace;font-size:0.72rem;padding:7px 18px;border-radius:8px}
+
+    /* ── CONTENT AREA ── */
+    .content{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative;}
+
+    /* ── ROUTE STATUS BAR ── */
+    .route-status{background:var(--navy);color:var(--white);padding:6px 12px;font-size:0.72rem;font-family:'JetBrains Mono',monospace;text-align:center;display:none;flex-shrink:0;}
+    .route-status.show{display:block;}
+
+    /* ── MAP + PANELS ── */
+    .map-area{display:flex;flex:1;overflow:hidden;position:relative;}
+    #map{flex:1;z-index:1;}
+
+    /* ── SIDE PANELS ── */
+    .panel{width:260px;min-width:260px;background:var(--surface);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;}
+    .panel-left{border-right:1px solid var(--border);}
+    .panel-right{border-left:1px solid var(--border);}
+    .panel-inner{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px;}
+    .panel-inner::-webkit-scrollbar{width:3px;}
+    .panel-inner::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+    /* ── SECTION HEADERS ── */
+    .sec-hdr{display:flex;align-items:center;gap:6px;font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);padding-bottom:5px;}
+
+    /* ── CARDS ── */
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);}
+    .card-hdr{background:var(--navy);color:var(--white);padding:8px 12px;font-size:0.78rem;font-weight:700;display:flex;align-items:center;justify-content:space-between;gap:6px;}
+    .card-hdr .badge-live{font-size:0.6rem;font-weight:600;background:rgba(30,138,90,0.2);color:#4ade80;border:1px solid rgba(74,222,128,0.3);border-radius:20px;padding:2px 7px;display:flex;align-items:center;gap:4px;}
+    .badge-live .dot{width:5px;height:5px;border-radius:50%;background:#4ade80;animation:dot-pulse 1.2s infinite;}
+    @keyframes dot-pulse{0%,100%{opacity:1}50%{opacity:0.2}}
+    .card-body{padding:12px;}
+
+    /* ── WEATHER ── */
+    .weather-top{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+    .w-icon-big{font-size:2.6rem;line-height:1;}
+    .w-temp-big{font-size:2.4rem;font-weight:900;color:var(--navy);line-height:1;}
+    .w-temp-big sup{font-size:1rem;color:var(--muted);font-weight:500;}
+    .w-desc{font-size:0.82rem;color:var(--text2);font-weight:500;}
+    .w-loc{font-size:0.68rem;color:var(--sky);margin-top:2px;}
+    .w-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:4px;}
+    .w-stat{background:var(--surface2);border-radius:8px;padding:7px 5px;text-align:center;border:1px solid var(--border);}
+    .w-stat .sv{font-size:0.88rem;font-weight:800;color:var(--navy);}
+    .w-stat .sl{font-size:0.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:1px;}
+
+    /* ── HOURLY ── */
+    .hourly{display:flex;gap:5px;overflow-x:auto;padding-bottom:2px;}
+    .hourly::-webkit-scrollbar{height:2px;}
+    .hourly::-webkit-scrollbar-thumb{background:var(--border);}
+    .h-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 9px;text-align:center;flex-shrink:0;min-width:54px;}
+    .h-card.now{background:var(--navy);border-color:var(--navy);}
+    .h-card.now .h-time,.h-card.now .h-temp,.h-card.now .h-rain{color:var(--white);}
+    .h-time{font-size:0.62rem;color:var(--muted);margin-bottom:3px;}
+    .h-icon{font-size:1rem;}
+    .h-temp{font-size:0.8rem;font-weight:700;color:var(--navy);margin-top:2px;}
+    .h-rain{font-size:0.58rem;color:var(--sky);}
+
+    /* ── RISK CHIPS ── */
+    .risk-item{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:0.76rem;}
+    .risk-item:last-child{border:none;}
+    .risk-item .lbl{color:var(--muted);}
+    .chip{font-size:0.64rem;font-weight:700;border-radius:20px;padding:2px 8px;}
+    .chip-mod{background:#fef3c7;color:#92400e;border:1px solid #fcd34d;}
+    .chip-low{background:#dcfce7;color:#166534;border:1px solid #86efac;}
+    .chip-high{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;}
+    .chip-navy{background:var(--navy);color:var(--white);}
+
+    /* ── AI TIP ── */
+    .ai-box{background:linear-gradient(135deg,var(--sky-pale),var(--success-bg));border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;font-size:0.76rem;line-height:1.55;color:var(--text);}
+    .ai-box strong{color:var(--navy);}
+
+    /* ── GPS BUTTON ── */
+    .gps-btn{width:100%;padding:12px;border:none;border-radius:var(--radius);background:var(--navy);color:var(--white);font-weight:700;font-size:0.88rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background 0.2s,transform 0.1s;box-shadow:var(--shadow);}
+    .gps-btn:hover{background:var(--navy-mid);}
+    .gps-btn:active{transform:scale(0.98);}
+    .gps-btn.on{background:var(--green);}
+    .gps-btn.on:hover{background:#15803d;}
+
+    /* ── WARNING BOX ── */
+    .warn-box{background:#fff7ed;border:1px solid #fdba74;border-radius:var(--radius);padding:9px 12px;font-size:0.75rem;color:#9a3412;display:flex;align-items:flex-start;gap:7px;line-height:1.4;}
+    .warn-box.hidden{display:none;}
+
+    /* ── STATUS PILL ── */
+    .status-pill{background:var(--mist);border:1px solid var(--border);border-radius:20px;padding:6px 12px;font-size:0.74rem;color:var(--muted);display:flex;align-items:center;gap:7px;}
+    .status-pill .dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0;}
+    .status-pill.live{color:var(--green);}
+    .status-pill.live .dot{background:var(--green);animation:dot-pulse 1.2s infinite;}
+
+    /* ── TREK LIST ── */
+    .trek-list{display:flex;flex-direction:column;gap:4px;}
+    .trek-btn{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:9px 11px;font-size:0.77rem;font-weight:600;color:var(--text);cursor:pointer;text-align:left;display:flex;align-items:center;justify-content:space-between;transition:all 0.15s;}
+    .trek-btn:hover{background:var(--sky-pale);border-color:var(--sky);color:var(--navy);}
+    .trek-btn.active{background:var(--navy);border-color:var(--navy);color:var(--white);}
+    .trek-btn.active .tk-diff{color:var(--sky-light);}
+    .tk-l{display:flex;align-items:center;gap:8px;}
+    .tdot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+    .tk-diff{font-size:0.62rem;color:var(--muted);background:var(--surface2);border-radius:20px;padding:2px 7px;white-space:nowrap;flex-shrink:0;}
+
+    /* ── RISK SCORE ── */
+    .risk-score-wrap{padding:2px 0;}
+    .rs-badge{display:inline-flex;align-items:center;gap:5px;font-size:0.85rem;font-weight:800;border-radius:8px;padding:8px 14px;width:100%;justify-content:center;}
+    .rs-low{background:#dcfce7;color:#166534;}
+    .rs-mod{background:#fef3c7;color:#92400e;}
+    .rs-high{background:#fee2e2;color:#991b1b;}
+    .rs-msg{font-size:0.74rem;color:var(--muted);margin-top:6px;line-height:1.4;}
+
+    /* ── APPLE WATCH VITALS ── */
+    .watch-strip{background:var(--navy);border-radius:var(--radius);padding:10px 12px;display:flex;align-items:center;gap:10px;}
+    .watch-icon-wrap{width:40px;height:40px;background:linear-gradient(135deg,#2d2d2f,#1c1c1e);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.1);}
+    .watch-info{flex:1;}
+    .watch-name{font-size:0.82rem;font-weight:700;color:var(--white);}
+    .watch-status{font-size:0.65rem;color:#4ade80;display:flex;align-items:center;gap:4px;margin-top:1px;}
+    .watch-status .dot{width:5px;height:5px;border-radius:50%;background:#4ade80;}
+    .watch-bat{background:rgba(74,222,128,0.15);border:1px solid rgba(74,222,128,0.3);color:#4ade80;font-size:0.68rem;font-weight:700;border-radius:6px;padding:3px 8px;flex-shrink:0;}
+    .vitals-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;}
+    .vital-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:14px 12px;display:flex;flex-direction:column;gap:3px;box-shadow:var(--shadow);}
+    .vital-card.full{grid-column:1/-1;}
+    .vital-em{font-size:1.3rem;}
+    .vital-number{font-size:1.7rem;font-weight:900;color:var(--navy);line-height:1.1;}
+    .vital-number small{font-size:0.65rem;font-weight:500;color:var(--muted);}
+    .vital-lbl{font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);}
+    .vital-st{font-size:0.68rem;font-weight:600;margin-top:1px;}
+    .vital-st.ok{color:var(--green);}
+    .vital-st.warn{color:var(--orange);}
+    .vital-st.bad{color:var(--crimson);}
+
+    /* ── SIM BUTTON ── */
+    .sim-btn{width:100%;padding:11px;border:none;border-radius:var(--radius);background:var(--crimson);color:var(--white);font-weight:700;font-size:0.84rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:background 0.2s;}
+    .sim-btn:hover{background:var(--crimson-h);}
+
+    /* ── MOBILE BOTTOM BAR ── */
+    .mob-bottom{display:none;position:absolute;bottom:0;left:0;right:0;z-index:700;background:var(--white);border-top:1px solid var(--border);padding:10px 14px;gap:8px;flex-direction:column;box-shadow:0 -4px 16px rgba(26,58,92,0.12);}
+    .mob-vitals-row{display:flex;gap:8px;}
+    .mob-vital{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:8px 10px;text-align:center;}
+    .mob-vital .mv{font-size:1rem;font-weight:800;color:var(--navy);}
+    .mob-vital .ml{font-size:0.6rem;color:var(--muted);text-transform:uppercase;margin-top:1px;}
+    .mob-status-row{font-size:0.74rem;color:var(--muted);display:flex;align-items:center;gap:6px;}
+    .mob-status-row .dot{width:7px;height:7px;border-radius:50%;background:var(--muted);flex-shrink:0;}
+    .mob-status-row.live{color:var(--green);}
+    .mob-status-row.live .dot{background:var(--green);}
+
+    /* ── MOBILE DRAWERS ── */
+    .drawer{display:none;position:fixed;top:var(--nav-h);bottom:0;z-index:800;width:min(88vw,300px);background:var(--white);flex-direction:column;overflow:hidden;box-shadow:var(--shadow-lg);transition:transform 0.25s ease;}
+    .drawer-left{left:0;border-right:1px solid var(--border);}
+    .drawer-right{right:0;border-left:1px solid var(--border);}
+    .drawer.open{display:flex;}
+    .backdrop{display:none;position:fixed;inset:0;z-index:799;background:rgba(15,35,64,0.4);backdrop-filter:blur(2px);}
+    .backdrop.open{display:block;}
+
+    /* ── MODALS (map.html) ── */
     .modal-overlay{position:fixed;inset:0;z-index:2000;background:rgba(15,35,64,0.6);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center}
     .modal-overlay.open{display:flex}
     .modal-box{background:var(--white);border-radius:20px;width:90%;max-width:560px;max-height:85vh;overflow-y:auto;padding:36px;box-shadow:0 24px 80px rgba(15,35,64,0.25)}
@@ -94,50 +255,62 @@
     .btn-sos-call{background:var(--crimson);color:white;font-weight:700;font-size:1rem;padding:14px 32px;border-radius:10px;border:none;width:100%;margin-bottom:10px;transition:background 0.15s;cursor:pointer}
     .btn-sos-call:hover{background:var(--crimson-h)}
     .btn-sos-cancel{background:var(--mist);color:var(--muted);font-weight:600;font-size:0.9rem;padding:11px 24px;border-radius:10px;border:none;width:100%;cursor:pointer}
+
+    /* ── TOAST (map.html) ── */
     .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--navy-deep);color:var(--white);padding:12px 24px;border-radius:10px;font-size:0.88rem;font-weight:500;box-shadow:0 8px 32px rgba(15,35,64,0.3);z-index:3000;transition:transform 0.3s ease;display:flex;align-items:center;gap:10px;white-space:nowrap}
     .toast.show{transform:translateX(-50%) translateY(0)}
-    @media(max-width:768px){.main-wrap{grid-template-columns:1fr}.sidebar{display:none}.topbar-nav{display:none}.hero{padding:40px 20px}}
+
+    /* ── RESPONSIVE ── */
+    @media(max-width:768px){
+      .sidebar{display:none}
+      .topbar-nav{display:none}
+      .panel{display:none}
+      .mob-icon-btn{display:flex}
+      .mob-bottom{display:flex}
+    }
     @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
   </style>
 </head>
 <body>
 
+<!-- ── MODALS (map.html) ── -->
 <div class="modal-overlay" id="howModal">
   <div class="modal-box">
     <div class="modal-header">
       <div class="modal-title">How to use YatraGuard AI</div>
-      <button class="modal-close" onclick="closeModal('howModal')">✕</button>
+      <button class="modal-close" onclick="closeModal('howModal')">&#x2715;</button>
     </div>
     <div class="how-step"><div class="how-step-num">1</div><div class="how-step-body"><div class="how-step-title">Sign in with Google</div><div class="how-step-text">Click "Sign in with Google" on the right panel or in the top bar. Your Google account syncs your saved treks, health baselines, and emergency contacts across devices.</div></div></div>
     <div class="how-step"><div class="how-step-num">2</div><div class="how-step-body"><div class="how-step-title">Choose your trek</div><div class="how-step-text">Go to <strong>My Trek</strong> in the sidebar. Select from Nepal's major trails and set your start date and group size.</div></div></div>
     <div class="how-step"><div class="how-step-num">3</div><div class="how-step-body"><div class="how-step-title">View your Route Map</div><div class="how-step-text">The <strong>Route Map</strong> section shows live trail conditions, danger zones, and safe alternatives. Connect GPS to see your real-time location on the trail.</div></div></div>
-    <div class="how-step"><div class="how-step-num">4</div><div class="how-step-body"><div class="how-step-title">Sync Apple Watch for Vitals</div><div class="how-step-text">Open the <strong>Vitals</strong> section and follow the Apple Watch pairing guide. YatraGuard AI monitors your heart rate, SpO₂, and HRV to detect altitude sickness early.</div></div></div>
+    <div class="how-step"><div class="how-step-num">4</div><div class="how-step-body"><div class="how-step-title">Sync Apple Watch for Vitals</div><div class="how-step-text">Open the <strong>Vitals</strong> section and follow the Apple Watch pairing guide. YatraGuard AI monitors your heart rate, SpO2, and HRV to detect altitude sickness early.</div></div></div>
     <div class="how-step"><div class="how-step-num">5</div><div class="how-step-body"><div class="how-step-title">Emergency SOS</div><div class="how-step-text">The red <strong>SOS</strong> button (top-right, every page) gives instant access to Nepal emergency services and shares your GPS location with rescue teams and your emergency contacts.</div></div></div>
   </div>
 </div>
 
 <div class="modal-overlay" id="sosModal">
   <div class="sos-modal-box">
-    <div class="sos-modal-icon">🆘</div>
+    <div class="sos-modal-icon">&#x1F198;</div>
     <div class="sos-modal-title">Emergency SOS</div>
     <div class="sos-modal-sub">Your GPS location will be shared with rescue services. Choose who to contact:</div>
     <div class="sos-modal-contacts">
-      <div class="sos-modal-contact"><span class="sos-modal-contact-name">🇳🇵 Nepal Police</span><span class="sos-modal-contact-num">100</span></div>
-      <div class="sos-modal-contact"><span class="sos-modal-contact-name">🚁 HAMS Air Rescue</span><span class="sos-modal-contact-num">+977-1-4488635</span></div>
-      <div class="sos-modal-contact"><span class="sos-modal-contact-name">🏥 CIWEC Clinic Kathmandu</span><span class="sos-modal-contact-num">+977-1-4435232</span></div>
-      <div class="sos-modal-contact"><span class="sos-modal-contact-name">🏔️ Himalayan Rescue Assoc.</span><span class="sos-modal-contact-num">+977-1-4440292</span></div>
+      <div class="sos-modal-contact"><span class="sos-modal-contact-name">&#x1F1F3;&#x1F1F5; Nepal Police</span><span class="sos-modal-contact-num">100</span></div>
+      <div class="sos-modal-contact"><span class="sos-modal-contact-name">&#x1F681; HAMS Air Rescue</span><span class="sos-modal-contact-num">+977-1-4488635</span></div>
+      <div class="sos-modal-contact"><span class="sos-modal-contact-name">&#x1F3E5; CIWEC Clinic Kathmandu</span><span class="sos-modal-contact-num">+977-1-4435232</span></div>
+      <div class="sos-modal-contact"><span class="sos-modal-contact-name">&#x1F3D4;&#xFE0F; Himalayan Rescue Assoc.</span><span class="sos-modal-contact-num">+977-1-4440292</span></div>
     </div>
-    <button class="btn-sos-call" onclick="closeModal('sosModal'); showToast('📡 GPS location sent to rescue teams')">📡 Send GPS + Alert Rescue Team</button>
+    <button class="btn-sos-call" onclick="closeModal('sosModal'); showToast('&#x1F4E1; GPS location sent to rescue teams')">&#x1F4E1; Send GPS + Alert Rescue Team</button>
     <button class="btn-sos-cancel" onclick="closeModal('sosModal')">Cancel</button>
   </div>
 </div>
 
+<!-- ── TOPBAR (map.html) ── -->
 <nav class="topbar">
   <a class="topbar-logo" href="/app/home.html">
     <img src="logo.png" alt="YatraGuard AI"/>
     <div class="topbar-logo-text">
       <div class="t1">Yatra<span class="r">Guard</span> <span class="b">AI</span></div>
-      <div class="t2">Safety Companion · Nepal</div>
+      <div class="t2">Safety Companion &middot; Nepal</div>
     </div>
   </a>
   <nav class="topbar-nav">
@@ -147,6 +320,10 @@
     <a href="/app/about.html">About</a>
   </nav>
   <div class="topbar-right">
+    <!-- Mobile panel toggles (livemap) -->
+    <button class="mob-icon-btn" id="mobWeatherBtn" onclick="toggleDrawer('left')" title="Weather">&#x1F324;</button>
+    <button class="mob-icon-btn" id="mobGpsBtn" onclick="toggleDrawer('right')" title="GPS &amp; Treks">&#x1F4CD;</button>
+    <!-- Desktop controls (map.html) -->
     <button class="btn-howto" onclick="openModal('howModal')" title="How to use YatraGuard AI">?</button>
     <div class="btn-signin-wrap" id="signinWrap">
       <div id="g_id_onload" data-client_id="946759380589-db7d35kk61mhcr0p2a6qc67qql2pr7el.apps.googleusercontent.com" data-callback="handleGoogleLogin" data-auto_prompt="false"></div>
@@ -155,90 +332,618 @@
     <button class="btn-user" id="userBtn" onclick="showUserMenu()">
       <img id="navUserPhoto" src="" alt=""/>
       <span class="btn-user-name" id="navUserName"></span>
-      <span style="font-size:0.65rem;color:var(--muted);">▼</span>
+      <span style="font-size:0.65rem;color:var(--muted);">&#x25BC;</span>
     </button>
-    <button class="btn-sos" onclick="openModal('sosModal')">🆘 SOS</button>
+    <button class="btn-sos" onclick="openModal('sosModal')">&#x1F198; SOS</button>
   </div>
 </nav>
 
+<!-- ── MAIN LAYOUT ── -->
 <div class="main-wrap">
+
+  <!-- ── SIDEBAR (map.html) ── -->
   <aside class="sidebar">
     <div class="sidebar-section-label">Navigation</div>
-    <a class="sidebar-link" href="/app/home.html"><span class="sidebar-icon">🏠</span> Home</a>
-    <a class="sidebar-link" href="/app/about.html"><span class="sidebar-icon">ℹ️</span> About</a>
+    <a class="sidebar-link" href="/app/home.html"><span class="sidebar-icon">&#x1F3E0;</span> Home</a>
+    <a class="sidebar-link" href="/app/about.html"><span class="sidebar-icon">&#x2139;&#xFE0F;</span> About</a>
     <div class="sidebar-section-label">Features</div>
-    <a class="sidebar-link active" href="/app/map.html"><span class="sidebar-icon">🗺️</span> Route Map <span class="sidebar-coming">Soon</span></a>
-    <a class="sidebar-link" href="/app/vitals.html"><span class="sidebar-icon">⌚</span> Vitals <span class="sidebar-coming">Soon</span></a>
+    <a class="sidebar-link active" href="/app/map.html"><span class="sidebar-icon">&#x1F5FA;&#xFE0F;</span> Route Map</a>
+    <a class="sidebar-link" href="/app/vitals.html"><span class="sidebar-icon">&#x231A;</span> Vitals <span class="sidebar-coming">Soon</span></a>
     <div class="sidebar-section-label">Safety</div>
-    <button class="sidebar-link" onclick="openModal('sosModal')"><span class="sidebar-icon">🆘</span> Emergency SOS <span class="sidebar-badge">!</span></button>
-    <button class="sidebar-link" onclick="openModal('howModal')"><span class="sidebar-icon">📖</span> How to Use</button>
+    <button class="sidebar-link" onclick="openModal('sosModal')"><span class="sidebar-icon">&#x1F198;</span> Emergency SOS <span class="sidebar-badge">!</span></button>
+    <button class="sidebar-link" onclick="openModal('howModal')"><span class="sidebar-icon">&#x1F4D6;</span> How to Use</button>
     <div class="sidebar-section-label">Account</div>
-    <button class="sidebar-link" id="sidebarSignIn" onclick="document.querySelector('.g_id_signin').click()"><span class="sidebar-icon">👤</span> Sign In with Google</button>
-    <button class="sidebar-link" id="sidebarSignOut" style="display:none;" onclick="signOut()"><span class="sidebar-icon">🚪</span> Sign Out</button>
+    <button class="sidebar-link" id="sidebarSignIn" onclick="document.querySelector('.g_id_signin').click()"><span class="sidebar-icon">&#x1F464;</span> Sign In with Google</button>
+    <button class="sidebar-link" id="sidebarSignOut" style="display:none;" onclick="signOut()"><span class="sidebar-icon">&#x1F6AA;</span> Sign Out</button>
   </aside>
 
+  <!-- ── CONTENT: Live Map ── -->
   <div class="content">
-    <div class="hero">
-      <div class="hero-inner">
-        <div class="hero-eyebrow"><span class="hero-eyebrow-dot"></span> Route Map · Coming Soon</div>
-        <h1>Trail <span>Route Map</span></h1>
-        <p>Live trail maps, danger zones, GPS tracking, and AI-suggested alternate routes for Nepal's major trekking trails.</p>
+
+    <div class="route-status" id="routeStatus">Calculating road route...</div>
+
+    <div class="map-area">
+
+      <!-- LEFT PANEL: Weather -->
+      <div class="panel panel-left" id="leftPanel">
+        <div class="panel-inner">
+          <div class="sec-hdr">&#x1F324; Live Weather</div>
+          <div class="card">
+            <div class="card-hdr">
+              Weather Conditions
+              <div class="badge-live"><div class="dot"></div>Live</div>
+            </div>
+            <div class="card-body">
+              <div class="weather-top">
+                <div class="w-icon-big" id="wIcon">&#x26C5;</div>
+                <div>
+                  <div class="w-temp-big"><span id="wTemp">&ndash;</span><sup>&deg;C</sup></div>
+                  <div class="w-desc" id="wDesc">Loading&hellip;</div>
+                  <div class="w-loc" id="wLoc">&#x1F4CD; Kathmandu, Nepal</div>
+                </div>
+              </div>
+              <div class="w-stats">
+                <div class="w-stat"><div class="sv" id="wHum">&ndash;</div><div class="sl">Humidity</div></div>
+                <div class="w-stat"><div class="sv" id="wWind">&ndash;</div><div class="sl">Wind km/h</div></div>
+                <div class="w-stat"><div class="sv" id="wRain">&ndash;</div><div class="sl">Rain %</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-hdr">Hourly Forecast</div>
+            <div class="card-body" style="padding:10px;">
+              <div class="hourly" id="hourlyRow">
+                <div class="h-card now"><div class="h-time">Now</div><div class="h-icon">&#x26C5;</div><div class="h-temp">&ndash;&deg;</div><div class="h-rain">&ndash;%</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-hdr">&#x26F0;&#xFE0F; Landslide Risk</div>
+            <div class="card-body" style="padding:8px 12px;">
+              <div class="risk-item" style="padding-bottom:6px;">
+                <span class="lbl" style="font-weight:600;color:var(--text);">Overall</span>
+                <span class="chip chip-mod" id="landBadge">&ndash;</span>
+              </div>
+              <div class="risk-item"><span class="lbl">Rainfall 24h</span><span style="font-weight:600;" id="rRain">&ndash;</span></div>
+              <div class="risk-item"><span class="lbl">Slope saturation</span><span style="font-weight:600;" id="rSlope">&ndash;</span></div>
+              <div class="risk-item"><span class="lbl">Seismic activity</span><span id="rSeismic">&ndash;</span></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-hdr">&#x2744;&#xFE0F; Snowstorm Risk</div>
+            <div class="card-body" style="padding:8px 12px;">
+              <div class="risk-item" style="padding-bottom:6px;">
+                <span class="lbl" style="font-weight:600;color:var(--text);">Overall</span>
+                <span class="chip chip-low" id="snowBadge">&ndash;</span>
+              </div>
+              <div class="risk-item"><span class="lbl">Snow line</span><span style="font-weight:600;" id="rSnowline">&ndash;</span></div>
+              <div class="risk-item"><span class="lbl">Visibility</span><span id="rVis">&ndash;</span></div>
+              <div class="risk-item"><span class="lbl">Wind chill</span><span style="font-weight:600;" id="rWindchill">&ndash;</span></div>
+            </div>
+          </div>
+          <div class="ai-box">
+            <strong>&#x1F916; AI Advisor:</strong> <span id="aiTip">Enable GPS to receive trail-specific safety advice.</span>
+          </div>
+        </div>
       </div>
-    </div>
-    <div class="placeholder-screen">
-      <div class="placeholder-icon">🗺️</div>
-      <div class="placeholder-title">Route Map — Coming Soon</div>
-      <div class="placeholder-sub">This section will show your live GPS position on Nepal's trail network, highlight landslide-risk zones, and suggest safe alternate routes powered by real-time data.</div>
-      <div class="placeholder-badge">🔒 Sign in to unlock when ready</div>
-    </div>
-  </div>
-</div>
+
+      <!-- MAP -->
+      <div id="map"></div>
+
+      <!-- MOBILE BOTTOM BAR -->
+      <div class="mob-bottom" id="mobBottom">
+        <div class="mob-status-row" id="mobStatus">
+          <div class="dot"></div><span id="mobStatusTxt">Tap &#x1F4CD; above to start GPS</span>
+        </div>
+        <div class="mob-vitals-row">
+          <div class="mob-vital"><div class="mv">&#x2764;&#xFE0F; <span id="m-hr">&ndash;</span></div><div class="ml">Heart Rate</div></div>
+          <div class="mob-vital"><div class="mv">&#x1FAC1; <span id="m-spo2">&ndash;</span></div><div class="ml">SpO&#x2082;</div></div>
+          <div class="mob-vital"><div class="mv">&#x1F9D7; <span id="m-alt">&ndash;</span></div><div class="ml">Altitude</div></div>
+        </div>
+      </div>
+
+      <!-- RIGHT PANEL: GPS + Vitals -->
+      <div class="panel panel-right" id="rightPanel">
+        <div class="panel-inner">
+          <div class="sec-hdr">&#x1F4CD; GPS Tracking &amp; Risk</div>
+          <div class="warn-box" id="gpsWarn">
+            &#x26A0;&#xFE0F; Enable GPS first. Routes are drawn from your real location to the trek destination.
+          </div>
+          <button class="gps-btn" id="gpsBtnEl" onclick="toggleGPS()">
+            <span id="gpsBtnIcon">&#x1F4CD;</span> <span id="gpsBtnTxt">Start GPS Tracking</span>
+          </button>
+          <div class="status-pill" id="statusPill">
+            <div class="dot"></div><span id="statusTxt">Click 'Start GPS Tracking' to begin</span>
+          </div>
+          <div class="sec-hdr">Select Trek Route</div>
+          <div class="trek-list" id="trekList"></div>
+          <div class="sec-hdr">AI Risk Monitor</div>
+          <div class="card">
+            <div class="card-hdr">Risk Assessment <span style="font-size:0.65rem;font-weight:400;color:var(--sky-light);" id="rsTrekName">No trek selected</span></div>
+            <div class="card-body">
+              <div id="riskContent">
+                <div style="font-size:0.78rem;color:var(--muted);">Select a trek and enable GPS to compute risk.</div>
+              </div>
+            </div>
+          </div>
+          <div class="sec-hdr">Apple Watch Vitals</div>
+          <div class="watch-strip">
+            <div class="watch-icon-wrap">&#x231A;</div>
+            <div class="watch-info">
+              <div class="watch-name">Apple Watch Ultra 2</div>
+              <div class="watch-status"><div class="dot"></div>Connected</div>
+            </div>
+            <div class="watch-bat" id="watchBat">72%</div>
+          </div>
+          <div class="vitals-grid">
+            <div class="vital-card">
+              <div class="vital-em">&#x2764;&#xFE0F;</div>
+              <div class="vital-number"><span id="vHR">75</span> <small>bpm</small></div>
+              <div class="vital-lbl">Heart Rate</div>
+              <div class="vital-st ok" id="vHRst">&#x2713; Normal</div>
+            </div>
+            <div class="vital-card">
+              <div class="vital-em">&#x1FAC1;</div>
+              <div class="vital-number"><span id="vSPO2">95</span> <small>%</small></div>
+              <div class="vital-lbl">SpO&#x2082;</div>
+              <div class="vital-st ok" id="vSPO2st">&#x2713; Good</div>
+            </div>
+            <div class="vital-card full">
+              <div class="vital-em">&#x1F9D7;</div>
+              <div class="vital-number"><span id="vALT">&ndash;</span> <small>m</small></div>
+              <div class="vital-lbl">Altitude (GPS)</div>
+              <div class="vital-st ok" id="vALTst">Awaiting GPS signal</div>
+            </div>
+          </div>
+          <button class="sim-btn" onclick="simulateLive()">&#x1F504; Simulate Live Update</button>
+        </div>
+      </div>
+
+      <!-- MOBILE DRAWERS -->
+      <div class="backdrop" id="backdrop" onclick="closeAllDrawers()"></div>
+      <div class="drawer drawer-left" id="drawerLeft"></div>
+      <div class="drawer drawer-right" id="drawerRight"></div>
+
+    </div><!-- /map-area -->
+  </div><!-- /content -->
+
+</div><!-- /main-wrap -->
 
 <div class="toast" id="toast"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-  function handleGoogleLogin(response) {
-    const base64 = response.credential.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
-    const payload = JSON.parse(atob(base64));
-    const user = { name: payload.name, given: payload.given_name, email: payload.email, picture: payload.picture };
-    applyLogin(user);
-    showToast('👋 Welcome, ' + user.given + '! You\'re signed in.');
+// ════════════════════════════════════════════════════
+// MAP.HTML — Google Auth & UI utilities
+// ════════════════════════════════════════════════════
+function handleGoogleLogin(response) {
+  var base64 = response.credential.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+  var payload = JSON.parse(atob(base64));
+  var user = { name: payload.name, given: payload.given_name, email: payload.email, picture: payload.picture };
+  applyLogin(user);
+  showToast('Welcome, ' + user.given + '! You\'re signed in.');
+}
+function applyLogin(user) {
+  document.getElementById('signinWrap').classList.add('hidden');
+  document.getElementById('userBtn').classList.add('visible');
+  document.getElementById('navUserPhoto').src = user.picture;
+  document.getElementById('navUserName').textContent = user.given;
+  document.getElementById('sidebarSignIn').style.display = 'none';
+  document.getElementById('sidebarSignOut').style.display = 'flex';
+  sessionStorage.setItem('yg_user', JSON.stringify(user));
+}
+function signOut() {
+  sessionStorage.removeItem('yg_user');
+  document.getElementById('signinWrap').classList.remove('hidden');
+  document.getElementById('userBtn').classList.remove('visible');
+  document.getElementById('sidebarSignIn').style.display = 'flex';
+  document.getElementById('sidebarSignOut').style.display = 'none';
+  if (window.google && window.google.accounts) google.accounts.id.disableAutoSelect();
+  showToast('Signed out successfully');
+}
+function showUserMenu() { if (confirm('Sign out of YatraGuard AI?')) signOut(); }
+
+function openModal(id) { document.getElementById(id).classList.add('open'); document.body.style.overflow = 'hidden'; }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); document.body.style.overflow = ''; }
+document.querySelectorAll('.modal-overlay').forEach(function(el) {
+  el.addEventListener('click', function(e) { if (e.target === el) closeModal(el.id); });
+});
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.open').forEach(function(m) { closeModal(m.id); });
+});
+
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 3500);
+}
+
+// ════════════════════════════════════════════════════
+// LIVEMAP.HTML — Map, GPS, Weather, Vitals
+// ════════════════════════════════════════════════════
+
+// MAP INIT
+var map = L.map('map',{zoomControl:false}).setView([28.0,84.5],7);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+  attribution:'&copy; OpenStreetMap contributors',maxZoom:18
+}).addTo(map);
+L.control.zoom({position:'topleft'}).addTo(map);
+
+// STATE
+var userLatLng=null, userMarker=null;
+var routeLayer=null, endMarker=null;
+var activeTrek=null;
+var watchId=null;
+
+// TREK DATA (real Nepal GPS waypoints)
+var TREKS = {
+  "Everest Base Camp":{color:"#1a3a5c",diff:"Hard \u00b7 130km",peakAlt:5364,
+    pts:[[27.6878,86.7314],[27.7369,86.7100],[27.8020,86.7143],[27.8365,86.7625],[27.8993,86.7940],[27.9800,86.8400],[28.0019,86.8559]]},
+  "Annapurna Circuit":{color:"#c0392b",diff:"Very Hard \u00b7 230km",peakAlt:5416,
+    pts:[[28.3376,84.4324],[28.4100,84.3200],[28.5500,84.2300],[28.7000,84.0900],[28.9800,83.7700],[29.0500,83.9200],[28.9000,84.0500],[28.7500,84.1800],[28.6000,83.8200],[28.4500,83.7300],[28.3900,83.8000]]},
+  "Annapurna Sanctuary":{color:"#d97706",diff:"Hard \u00b7 110km",peakAlt:4130,
+    pts:[[28.3989,83.8196],[28.4500,83.8300],[28.4900,83.9000],[28.5200,83.9200],[28.5300,83.9500],[28.5100,83.9800],[28.4700,83.9900]]},
+  "Manaslu Circuit":{color:"#7c3aed",diff:"Very Hard \u00b7 177km",peakAlt:5106,
+    pts:[[28.5893,84.6300],[28.5200,84.7100],[28.4500,84.7800],[28.3700,84.8000],[28.2700,84.8300],[28.1800,84.8200],[28.0400,84.8500]]},
+  "Langtang Valley":{color:"#5ab4d6",diff:"Moderate \u00b7 65km",peakAlt:3870,
+    pts:[[28.0074,85.2936],[28.0500,85.3600],[28.0900,85.4200],[28.1300,85.4900],[28.1800,85.5200],[28.2130,85.5700]]},
+  "Gokyo Lakes":{color:"#0284c7",diff:"Hard \u00b7 95km",peakAlt:4750,
+    pts:[[27.6878,86.7314],[27.7369,86.7100],[27.8020,86.7143],[27.8600,86.6700],[27.9000,86.6550],[27.9530,86.6800]]},
+  "Poon Hill":{color:"#ca8a04",diff:"Easy \u00b7 45km",peakAlt:3210,
+    pts:[[28.3884,83.8200],[28.4050,83.7700],[28.4200,83.7300],[28.4300,83.7000],[28.4000,83.6850]]},
+  "Upper Mustang":{color:"#be185d",diff:"Hard \u00b7 120km",peakAlt:3840,
+    pts:[[28.7783,83.7300],[28.8370,83.7780],[28.9000,83.8000],[28.9600,83.8450],[29.0500,83.8880],[29.1800,83.9550]]},
+  "Kanchenjunga BC":{color:"#15803d",diff:"Very Hard \u00b7 200km",peakAlt:5143,
+    pts:[[27.3520,87.9200],[27.4200,87.9600],[27.5500,87.9300],[27.6800,87.9000],[27.7900,88.0100],[27.8600,88.0500]]},
+  "Makalu Base Camp":{color:"#047857",diff:"Very Hard \u00b7 120km",peakAlt:5700,
+    pts:[[27.5000,87.1500],[27.5500,87.1800],[27.6100,87.2000],[27.6800,87.2400],[27.8000,87.2900],[27.8900,87.3100]]},
+  "Helambu Circuit":{color:"#b45309",diff:"Easy \u00b7 80km",peakAlt:3650,
+    pts:[[27.9500,85.5200],[28.0200,85.5800],[28.0700,85.5500],[28.1200,85.5900],[28.1700,85.5400],[28.1300,85.4600]]},
+  "Dolpo Trek":{color:"#6b21a8",diff:"Very Hard \u00b7 250km",peakAlt:5190,
+    pts:[[28.9000,82.8000],[29.0000,82.9000],[29.1000,83.0500],[29.2000,83.2000],[29.1500,83.4000],[28.8500,83.4500]]}
+};
+
+// ROAD ROUTING via OSRM
+async function fetchOSRMRoute(fromLatLng, toLatLng){
+  var coords = fromLatLng[1]+','+fromLatLng[0]+';'+toLatLng[1]+','+toLatLng[0];
+  var url = 'https://router.project-osrm.org/route/v1/foot/'+coords+'?overview=full&geometries=geojson';
+  try{
+    var r = await fetch(url);
+    var d = await r.json();
+    if(d.code==='Ok' && d.routes && d.routes.length>0){
+      return d.routes[0].geometry.coordinates.map(function(c){return [c[1],c[0]];});
+    }
+  }catch(e){}
+  return null;
+}
+
+// DRAW TREK ROUTE
+async function loadTrek(name){
+  var t = TREKS[name];
+  activeTrek = name;
+  clearRoute();
+
+  document.querySelectorAll('.trek-btn').forEach(function(b){b.classList.remove('active');});
+  document.querySelectorAll('[data-trek="'+name+'"]').forEach(function(b){b.classList.add('active');});
+  document.getElementById('rsTrekName').textContent = name;
+
+  if(!userLatLng) document.getElementById('gpsWarn').classList.remove('hidden');
+
+  var destPt = t.pts[t.pts.length-1];
+  var trekPts = t.pts.map(function(c){return L.latLng(c[0],c[1]);});
+  var trekLine = L.polyline(trekPts,{color:t.color,weight:4,opacity:0.85,lineJoin:'round',dashArray:'8,4'}).addTo(map);
+  routeLayer = L.layerGroup([trekLine]);
+  routeLayer.addTo(map);
+
+  endMarker = L.marker([destPt[0],destPt[1]],{
+    icon:L.divIcon({
+      html:'<div style="width:28px;height:28px;background:'+t.color+';border:3px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.85rem;box-shadow:0 2px 8px rgba(0,0,0,0.3);">\u{1F3D4}</div>',
+      iconSize:[28,28],iconAnchor:[14,14]
+    })
+  }).addTo(map).bindPopup('<b>'+name+'</b><br>Peak altitude: '+t.peakAlt.toLocaleString()+'m');
+
+  if(userLatLng){
+    showRouteStatus('Calculating road route via OSRM...');
+    var trekStart = t.pts[0];
+    var roadCoords = await fetchOSRMRoute(userLatLng, trekStart);
+    if(roadCoords && roadCoords.length > 0){
+      var roadLine = L.polyline(roadCoords,{color:'#c0392b',weight:5,opacity:0.95,lineJoin:'round',lineCap:'round'}).addTo(map);
+      routeLayer.addLayer(roadLine);
+      var connector = L.polyline([roadCoords[roadCoords.length-1], L.latLng(trekStart[0],trekStart[1])],
+        {color:t.color,weight:3,opacity:0.7,dashArray:'6,4'}).addTo(map);
+      routeLayer.addLayer(connector);
+      showRouteStatus('Road route loaded — red = road, dashed = trek trail');
+      setTimeout(hideRouteStatus,3500);
+    } else {
+      var fallback = L.polyline([userLatLng, [trekStart[0],trekStart[1]]],
+        {color:'#c0392b',weight:4,opacity:0.7,dashArray:'10,6'}).addTo(map);
+      routeLayer.addLayer(fallback);
+      showRouteStatus('Road data limited — showing approximate path');
+      setTimeout(hideRouteStatus,3000);
+    }
+    addUserMarker();
+    var allPts = [userLatLng].concat(t.pts.map(function(c){return L.latLng(c[0],c[1]);}));
+    map.fitBounds(L.polyline(allPts).getBounds(),{padding:[50,50]});
+  } else {
+    map.fitBounds(L.polyline(trekPts).getBounds(),{padding:[50,50]});
   }
-  function applyLogin(user) {
-    document.getElementById('signinWrap').classList.add('hidden');
-    document.getElementById('userBtn').classList.add('visible');
-    document.getElementById('navUserPhoto').src = user.picture;
-    document.getElementById('navUserName').textContent = user.given;
-    document.getElementById('sidebarSignIn').style.display = 'none';
-    document.getElementById('sidebarSignOut').style.display = 'flex';
-    sessionStorage.setItem('yg_user', JSON.stringify(user));
+
+  computeRisk();
+  if(window.innerWidth<=768) closeAllDrawers();
+}
+
+function clearRoute(){
+  if(routeLayer){map.removeLayer(routeLayer);routeLayer=null;}
+  if(endMarker){map.removeLayer(endMarker);endMarker=null;}
+}
+
+function addUserMarker(){
+  if(userMarker) map.removeLayer(userMarker);
+  userMarker = L.marker(userLatLng,{
+    icon:L.divIcon({
+      html:'<div style="width:20px;height:20px;background:#c0392b;border:3px solid white;border-radius:50%;box-shadow:0 0 0 4px rgba(192,57,43,0.25),0 2px 8px rgba(0,0,0,0.3);"></div>',
+      iconSize:[20,20],iconAnchor:[10,10]
+    })
+  }).addTo(map).bindPopup('<b>You are here</b>');
+}
+
+function showRouteStatus(txt){
+  var el=document.getElementById('routeStatus');
+  el.textContent=txt; el.classList.add('show');
+}
+function hideRouteStatus(){
+  document.getElementById('routeStatus').classList.remove('show');
+}
+
+// GPS
+function toggleGPS(){
+  if(watchId!==null){
+    navigator.geolocation.clearWatch(watchId); watchId=null;
+    setGPSState(false); return;
   }
-  function signOut() {
-    sessionStorage.removeItem('yg_user');
-    document.getElementById('signinWrap').classList.remove('hidden');
-    document.getElementById('userBtn').classList.remove('visible');
-    document.getElementById('sidebarSignIn').style.display = 'flex';
-    document.getElementById('sidebarSignOut').style.display = 'none';
-    if (window.google && window.google.accounts) google.accounts.id.disableAutoSelect();
-    showToast('✓ Signed out successfully');
+  if(!navigator.geolocation){alert('Geolocation is not supported by your browser.');return;}
+  setStatusText('Acquiring GPS signal\u2026');
+  watchId=navigator.geolocation.watchPosition(function(pos){
+    userLatLng=[pos.coords.latitude,pos.coords.longitude];
+    setGPSState(true);
+    document.getElementById('gpsWarn').classList.add('hidden');
+    var coord=userLatLng[0].toFixed(4)+', '+userLatLng[1].toFixed(4);
+    setStatusText('Live \u00b7 '+coord,true);
+    addUserMarker();
+    fetchAltitude(userLatLng[0],userLatLng[1]);
+    fetchWeather(userLatLng[0],userLatLng[1],userLatLng[0].toFixed(3)+', '+userLatLng[1].toFixed(3));
+    if(activeTrek) loadTrek(activeTrek);
+  },function(err){
+    setStatusText('GPS error: '+err.message);
+  },{enableHighAccuracy:true,maximumAge:5000,timeout:15000});
+}
+
+function setGPSState(on){
+  document.getElementById('gpsBtnTxt').textContent=on?'Stop GPS':'Start GPS Tracking';
+  document.getElementById('gpsBtnIcon').textContent=on?'\u23F9':'\uD83D\uDCCD';
+  document.getElementById('gpsBtnEl').classList.toggle('on',on);
+}
+function setStatusText(txt,live){
+  live=live||false;
+  document.getElementById('statusTxt').textContent=txt;
+  document.getElementById('statusPill').classList.toggle('live',live);
+  document.getElementById('mobStatusTxt').textContent=txt;
+  document.getElementById('mobStatus').classList.toggle('live',live);
+}
+
+// ALTITUDE
+async function fetchAltitude(lat,lon){
+  try{
+    var r=await fetch('https://api.open-elevation.com/api/v1/lookup?locations='+lat+','+lon);
+    var d=await r.json();
+    setAltitude(d.results[0].elevation);
+  }catch(e){
+    try{
+      var r2=await fetch('https://epqs.nationalmap.gov/v1/json?x='+lon+'&y='+lat+'&wkid=4326&includeDate=false');
+      var d2=await r2.json();
+      setAltitude(Math.round(d2.value));
+    }catch(e2){
+      setAltitude(userLatLng?1340:null);
+    }
   }
-  function showUserMenu() { if (confirm('Sign out of YatraGuard AI?')) signOut(); }
-  window.addEventListener('load', () => {
-    const saved = sessionStorage.getItem('yg_user');
-    if (saved) { try { applyLogin(JSON.parse(saved)); } catch(e) {} }
+}
+function setAltitude(m){
+  if(m===null){document.getElementById('vALT').textContent='\u2013';return;}
+  document.getElementById('vALT').textContent=Math.round(m).toLocaleString();
+  document.getElementById('m-alt').textContent=Math.round(m).toLocaleString()+'m';
+  var st=document.getElementById('vALTst');
+  if(m>4500){st.textContent='\u26A0\uFE0F Extreme altitude';st.className='vital-st bad';}
+  else if(m>3500){st.textContent='\u26A0\uFE0F High altitude';st.className='vital-st warn';}
+  else{st.textContent='\u2713 Safe altitude';st.className='vital-st ok';}
+  computeRisk();
+}
+
+// WEATHER
+async function fetchWeather(lat,lon,locLabel){
+  locLabel=locLabel||'Trail position';
+  try{
+    var url='https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+'&current=temperature_2m,relative_humidity_2m,wind_speed_10m,precipitation_probability,weather_code,apparent_temperature&hourly=temperature_2m,precipitation_probability,weather_code&forecast_days=1&wind_speed_unit=kmh&timezone=auto';
+    var r=await fetch(url); var d=await r.json(); var c=d.current;
+    var wc=c.weather_code;
+    document.getElementById('wTemp').textContent=Math.round(c.temperature_2m);
+    document.getElementById('wDesc').textContent=wDescFn(wc);
+    document.getElementById('wIcon').textContent=wIconFn(wc);
+    document.getElementById('wLoc').textContent='\uD83D\uDCCD '+locLabel;
+    document.getElementById('wHum').textContent=c.relative_humidity_2m+'%';
+    document.getElementById('wWind').textContent=Math.round(c.wind_speed_10m);
+    document.getElementById('wRain').textContent=(c.precipitation_probability||0)+'%';
+    var h=d.hourly,now=new Date(),ch=now.getHours(),row=document.getElementById('hourlyRow');
+    row.innerHTML='';
+    for(var i=ch;i<=ch+5&&i<24;i++){
+      var isNow=i===ch;
+      var el=document.createElement('div');
+      el.className='h-card'+(isNow?' now':'');
+      el.innerHTML='<div class="h-time">'+(isNow?'Now':String(i).padStart(2,'0')+':00')+'</div><div class="h-icon">'+wIconFn(h.weather_code[i])+'</div><div class="h-temp">'+Math.round(h.temperature_2m[i])+'&deg;</div><div class="h-rain">'+h.precipitation_probability[i]+'%</div>';
+      row.appendChild(el);
+    }
+    var rp=c.precipitation_probability||0,wnd=c.wind_speed_10m||0,tmp=c.temperature_2m||0;
+    document.getElementById('landBadge').textContent=rp>60?(rp+'% \u00b7 HIGH'):rp>30?(rp+'% \u00b7 MOD'):(rp+'% \u00b7 LOW');
+    document.getElementById('landBadge').className='chip '+(rp>60?'chip-high':rp>30?'chip-mod':'chip-low');
+    document.getElementById('rRain').textContent=Math.round(rp*0.9)+'mm';
+    document.getElementById('rSlope').textContent=rp>60?'High':rp>30?'Moderate':'Low';
+    document.getElementById('rSeismic').textContent='None detected';
+    var ssc=tmp<-2?40:tmp<5?15:5;
+    document.getElementById('snowBadge').textContent=ssc>30?(ssc+'% \u00b7 MOD'):(ssc+'% \u00b7 LOW');
+    document.getElementById('snowBadge').className='chip '+(ssc>30?'chip-mod':'chip-low');
+    document.getElementById('rSnowline').textContent=tmp<0?'3,200m':'4,100m';
+    document.getElementById('rVis').textContent=wc>45?'Poor':'Good';
+    document.getElementById('rWindchill').textContent=Math.round(c.apparent_temperature)+'\u00b0C';
+    genAiTip(rp,wnd,wc,tmp);
+    syncDrawers();
+  }catch(e){demoWeather();}
+}
+
+function genAiTip(rain,wind,wc,temp){
+  var t=[];
+  if(rain>60)t.push('heavy rain forecast \u2014 watch for landslide zones and slippery trails');
+  if(wind>40)t.push('strong winds ('+Math.round(wind)+' km/h) \u2014 avoid exposed ridges');
+  if(wc>=80)t.push('thunderstorm detected \u2014 descend below treeline now');
+  if(temp<-5)t.push('extreme cold ('+Math.round(temp)+'\u00b0C) \u2014 full thermal gear required');
+  if(!t.length)t.push('conditions are favorable. Stay hydrated and maintain a steady pace.');
+  document.getElementById('aiTip').textContent=t.join('; ')+'.';
+}
+
+function demoWeather(){
+  document.getElementById('wTemp').textContent='7';
+  document.getElementById('wDesc').textContent='Partly Cloudy';
+  document.getElementById('wIcon').textContent='\u26C5';
+  document.getElementById('wHum').textContent='82%';
+  document.getElementById('wWind').textContent='14';
+  document.getElementById('wRain').textContent='38%';
+  document.getElementById('landBadge').textContent='58% \u00b7 MOD'; document.getElementById('landBadge').className='chip chip-mod';
+  document.getElementById('snowBadge').textContent='12% \u00b7 LOW'; document.getElementById('snowBadge').className='chip chip-low';
+  document.getElementById('rRain').textContent='82mm'; document.getElementById('rSlope').textContent='Moderate';
+  document.getElementById('rSeismic').textContent='None'; document.getElementById('rSnowline').textContent='3,800m';
+  document.getElementById('rVis').textContent='Good'; document.getElementById('rWindchill').textContent='-4\u00b0C';
+  document.getElementById('aiTip').textContent='Reach Dovan before 13:00 \u2014 heavy rain forecast from 14:00. Take upper Deurali ridge to avoid active landslide zone.';
+}
+
+function wDescFn(c){if(c===0)return'Clear Sky';if(c<=2)return'Partly Cloudy';if(c===3)return'Overcast';if(c<=49)return'Foggy';if(c<=59)return'Drizzle';if(c<=69)return'Rain';if(c<=79)return'Snow';if(c<=84)return'Rain Showers';return'Thunderstorm';}
+function wIconFn(c){if(c===0)return'\u2600\uFE0F';if(c<=2)return'\u26C5';if(c===3)return'\u2601\uFE0F';if(c<=49)return'\uD83C\uDF2B\uFE0F';if(c<=69)return'\uD83C\uDF27\uFE0F';if(c<=79)return'\u2744\uFE0F';if(c<=84)return'\uD83C\uDF26\uFE0F';return'\u26C8\uFE0F';}
+
+// RISK COMPUTATION
+function computeRisk(){
+  if(!activeTrek)return;
+  var hr=parseInt(document.getElementById('vHR').textContent)||75;
+  var spo2=parseInt(document.getElementById('vSPO2').textContent)||95;
+  var altEl=document.getElementById('vALT').textContent.replace(/,/g,'');
+  var alt=parseInt(altEl)||500;
+  var sc=0;
+  if(alt>4500)sc+=40;else if(alt>3500)sc+=20;
+  if(spo2<85)sc+=40;else if(spo2<90)sc+=20;
+  if(hr>130)sc+=20;else if(hr>110)sc+=10;
+  var level=sc>=50?'High':sc>=20?'Moderate':'Low';
+  var cls=sc>=50?'rs-high':sc>=20?'rs-mod':'rs-low';
+  var emoji=sc>=50?'\uD83D\uDD34':sc>=20?'\uD83D\uDFE1':'\uD83D\uDFE2';
+  var msg=sc>=50?'SpO\u2082 critically low. Descend 300\u2013500m immediately and rest.':sc>=20?'Mild altitude stress. Slow your ascent and monitor closely.':'All vitals within safe range. Continue at steady pace.';
+  document.getElementById('riskContent').innerHTML='<div class="risk-score-wrap"><div class="rs-badge '+cls+'">'+emoji+' '+level+' Risk &nbsp;<span style="font-weight:400;font-size:0.72rem;">'+sc+'/100</span></div><div class="rs-msg">'+msg+'</div></div>';
+}
+
+// VITALS
+function setVitals(hr,spo2){
+  document.getElementById('vHR').textContent=hr;
+  document.getElementById('vSPO2').textContent=spo2;
+  document.getElementById('m-hr').textContent=hr+' bpm';
+  document.getElementById('m-spo2').textContent=spo2+'%';
+  var hst=document.getElementById('vHRst');
+  hst.textContent=hr<100?'\u2713 Normal':hr<120?'\u26A0\uFE0F Elevated':'\uD83D\uDD34 High';
+  hst.className='vital-st '+(hr<100?'ok':hr<120?'warn':'bad');
+  var sst=document.getElementById('vSPO2st');
+  sst.textContent=spo2>=94?'\u2713 Good':spo2>=88?'\u26A0\uFE0F Low':'\uD83D\uDD34 Critical';
+  sst.className='vital-st '+(spo2>=94?'ok':spo2>=88?'warn':'bad');
+  computeRisk();
+  syncDrawers();
+}
+
+function simulateLive(){
+  var hr=108+Math.floor(Math.random()*28);
+  var spo2=82+Math.floor(Math.random()*14);
+  var alt=3500+Math.floor(Math.random()*2000);
+  setVitals(hr,spo2);
+  setAltitude(alt);
+  document.getElementById('watchBat').textContent=(55+Math.floor(Math.random()*40))+'%';
+  fetchWeather(28.0,85.5,'Simulated Trail Position');
+  setStatusText('Simulated feed active',true);
+  document.getElementById('gpsWarn').classList.add('hidden');
+}
+
+// MOBILE DRAWERS
+function buildDrawers(){
+  var dl=document.getElementById('drawerLeft');
+  var dr=document.getElementById('drawerRight');
+  dl.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px 0;"><span style="font-size:0.75rem;font-weight:700;color:var(--muted);">\uD83C\uDF24 WEATHER</span><button onclick="closeAllDrawers()" style="background:none;border:none;font-size:1.2rem;color:var(--muted);cursor:pointer;">\u2715</button></div><div class="panel-inner" id="drawerLeftInner"></div>';
+  dr.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px 0;"><span style="font-size:0.75rem;font-weight:700;color:var(--muted);">\uD83D\uDCCD GPS &amp; TREKS</span><button onclick="closeAllDrawers()" style="background:none;border:none;font-size:1.2rem;color:var(--muted);cursor:pointer;">\u2715</button></div><div class="panel-inner" id="drawerRightInner"></div>';
+  syncDrawers();
+}
+
+function syncDrawers(){
+  var lSrc=document.getElementById('leftPanel').querySelector('.panel-inner');
+  var rSrc=document.getElementById('rightPanel').querySelector('.panel-inner');
+  var lDst=document.getElementById('drawerLeftInner');
+  var rDst=document.getElementById('drawerRightInner');
+  if(lDst) lDst.innerHTML=lSrc.innerHTML;
+  if(rDst) rDst.innerHTML=rSrc.innerHTML;
+  document.querySelectorAll('#drawerRightInner [data-trek]').forEach(function(btn){
+    btn.onclick=function(){loadTrek(btn.dataset.trek);};
+    if(btn.dataset.trek===activeTrek) btn.classList.add('active');
   });
-  function openModal(id) { document.getElementById(id).classList.add('open'); document.body.style.overflow = 'hidden'; }
-  function closeModal(id) { document.getElementById(id).classList.remove('open'); document.body.style.overflow = ''; }
-  document.querySelectorAll('.modal-overlay').forEach(el => {
-    el.addEventListener('click', e => { if (e.target === el) closeModal(el.id); });
-  });
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.open').forEach(m => closeModal(m.id));
-  });
-  function showToast(msg) {
-    const t = document.getElementById('toast');
-    t.textContent = msg; t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 3500);
+  var dGpsBtn=document.querySelector('#drawerRightInner .gps-btn');
+  if(dGpsBtn) dGpsBtn.onclick=function(){toggleGPS();syncDrawers();};
+  var dSimBtn=document.querySelector('#drawerRightInner .sim-btn');
+  if(dSimBtn) dSimBtn.onclick=simulateLive;
+}
+
+function toggleDrawer(side){
+  if(window.innerWidth>768)return;
+  var dl=document.getElementById('drawerLeft');
+  var dr=document.getElementById('drawerRight');
+  var bd=document.getElementById('backdrop');
+  var leftBtn=document.getElementById('mobWeatherBtn');
+  var rightBtn=document.getElementById('mobGpsBtn');
+  if(side==='left'){
+    var isOpen=dl.classList.contains('open');
+    closeAllDrawers();
+    if(!isOpen){dl.classList.add('open');bd.classList.add('open');leftBtn.classList.add('active-panel');syncDrawers();}
+  } else {
+    var isOpenR=dr.classList.contains('open');
+    closeAllDrawers();
+    if(!isOpenR){dr.classList.add('open');bd.classList.add('open');rightBtn.classList.add('active-panel');syncDrawers();}
   }
+}
+function closeAllDrawers(){
+  document.getElementById('drawerLeft').classList.remove('open');
+  document.getElementById('drawerRight').classList.remove('open');
+  document.getElementById('backdrop').classList.remove('open');
+  document.getElementById('mobWeatherBtn').classList.remove('active-panel');
+  document.getElementById('mobGpsBtn').classList.remove('active-panel');
+}
+
+// INIT
+window.onload = function(){
+  // Restore Google login session
+  var saved = sessionStorage.getItem('yg_user');
+  if (saved) { try { applyLogin(JSON.parse(saved)); } catch(e) {} }
+
+  // Build trek list
+  var list=document.getElementById('trekList');
+  Object.entries(TREKS).forEach(function(entry){
+    var name=entry[0], t=entry[1];
+    var b=document.createElement('button');
+    b.className='trek-btn'; b.dataset.trek=name;
+    b.innerHTML='<span class="tk-l"><span class="tdot" style="background:'+t.color+'"></span>'+name+'</span><span class="tk-diff">'+t.diff+'</span>';
+    b.onclick=function(){loadTrek(name);};
+    list.appendChild(b);
+  });
+
+  buildDrawers();
+  fetchWeather(27.7172,85.3240,'Kathmandu, Nepal');
+  map.on('click',closeAllDrawers);
+};
 </script>
 </body>
 </html>
