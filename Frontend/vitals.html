@@ -97,6 +97,34 @@
     .toast.show{transform:translateX(-50%) translateY(0)}
     @media(max-width:768px){.main-wrap{grid-template-columns:1fr}.sidebar{display:none}.topbar-nav{display:none}.hero{padding:40px 20px}}
     @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+  
+    /* ── HAMBURGER + DRAWER ── */
+    .mob-menu-btn{display:none;width:38px;height:38px;border-radius:9px;background:var(--mist);border:1.5px solid var(--border);color:var(--navy);font-size:1.2rem;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background .15s;}
+    .mob-menu-btn:hover{background:var(--sky-pale);}
+    .nav-drawer{position:fixed;top:0;right:0;bottom:0;z-index:1100;width:min(82vw,300px);background:var(--white);box-shadow:-6px 0 32px rgba(15,35,64,0.18);transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow-y:auto;}
+    .nav-drawer.open{transform:translateX(0);}
+    .nav-drawer-backdrop{position:fixed;inset:0;z-index:1099;background:rgba(15,35,64,0.45);backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .25s;}
+    .nav-drawer-backdrop.open{opacity:1;pointer-events:all;}
+    .nav-drawer-header{display:flex;align-items:center;justify-content:space-between;padding:18px 18px 12px;border-bottom:1px solid var(--border);}
+    .nav-drawer-logo{font-size:1rem;font-weight:800;color:var(--navy);letter-spacing:-.02em;}
+    .nav-drawer-logo span{color:var(--crimson);}
+    .nav-drawer-close{width:32px;height:32px;border-radius:50%;background:var(--mist);border:none;color:var(--muted);font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+    .nav-drawer-body{padding:14px 12px;flex:1;}
+    .nav-drawer-section{font-size:.62rem;font-weight:700;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;padding:0 10px;margin:14px 0 6px;}
+    .nav-drawer-section:first-child{margin-top:0;}
+    .nav-drawer-link{display:flex;align-items:center;gap:11px;padding:11px 14px;border-radius:10px;font-size:.9rem;font-weight:500;color:var(--text);text-decoration:none;border:none;background:transparent;width:100%;text-align:left;cursor:pointer;font-family:inherit;margin-bottom:2px;transition:background .15s,color .15s;}
+    .nav-drawer-link:hover{background:var(--sky-pale);color:var(--navy);}
+    .nav-drawer-link.active{background:var(--navy);color:var(--white);}
+    .nav-drawer-link .nd-icon{font-size:1.1rem;width:22px;text-align:center;flex-shrink:0;}
+    .nav-drawer-sos{background:var(--crimson);color:var(--white);margin-top:10px;border-radius:10px;padding:13px 16px;font-weight:700;}
+    .nav-drawer-sos:hover{background:var(--crimson-h);color:var(--white);}
+    @media(max-width:768px){
+      .mob-menu-btn{display:flex;}
+      .topbar-nav{display:none;}
+      .topbar{padding:0 12px;gap:8px;}
+      .topbar-logo-text .t2{display:none;}
+    }
+
   </style>
 </head>
 <body>
@@ -156,6 +184,7 @@
       <span class="btn-user-name" id="navUserName"></span>
       <span style="font-size:0.65rem;color:var(--muted);">▼</span>
     </button>
+    <button class="mob-menu-btn" onclick="openNavDrawer()" aria-label="Open menu">☰</button>
     <button class="btn-sos" onclick="openModal('sosModal')">🆘 SOS</button>
   </div>
 </nav>
@@ -166,7 +195,7 @@
     <a class="sidebar-link" href="/app/home.html"><span class="sidebar-icon">🏠</span> Home</a>
     <a class="sidebar-link" href="/app/about.html"><span class="sidebar-icon">ℹ️</span> About</a>
     <div class="sidebar-section-label">Features</div>
-    <a class="sidebar-link" href="/app/map.html"><span class="sidebar-icon">🗺️</span> Route Map <span class="sidebar-coming">Soon</span></a>
+    <a class="sidebar-link" href="/app/map.html"><span class="sidebar-icon">🗺️</span> Route Map</a>
     <a class="sidebar-link active" href="/app/vitals.html"><span class="sidebar-icon">⌚</span> Vitals</a>
     <div class="sidebar-section-label">Safety</div>
     <button class="sidebar-link" onclick="openModal('sosModal')"><span class="sidebar-icon">🆘</span> Emergency SOS <span class="sidebar-badge">!</span></button>
@@ -544,5 +573,29 @@
     setTimeout(() => t.classList.remove('show'), 3500);
   }
 </script>
+
+<!-- NAV DRAWER -->
+<div class="nav-drawer-backdrop" id="navBackdrop" onclick="closeNavDrawer()"></div>
+<div class="nav-drawer" id="navDrawer">
+  <div class="nav-drawer-header">
+    <div class="nav-drawer-logo">Yatra<span>Guard</span> AI</div>
+    <button class="nav-drawer-close" onclick="closeNavDrawer()">✕</button>
+  </div>
+  <div class="nav-drawer-body">
+    <div class="nav-drawer-section">Navigation</div>
+    <a class="nav-drawer-link" href="/app/home.html"><span class="nd-icon">🏠</span>Home</a>
+    <a class="nav-drawer-link" href="/app/map.html"><span class="nd-icon">🗺️</span>Route Map</a>
+    <a class="nav-drawer-link active" href="/app/vitals.html"><span class="nd-icon">⌚</span>Vitals</a>
+    <a class="nav-drawer-link" href="/app/about.html"><span class="nd-icon">ℹ️</span>About</a>
+    <div class="nav-drawer-section">Emergency</div>
+    <button class="nav-drawer-link nav-drawer-sos" onclick="closeNavDrawer();openModal('sosModal')"><span class="nd-icon">🆘</span>Emergency SOS</button>
+  </div>
+</div>
+<script>
+function openNavDrawer(){document.getElementById('navDrawer').classList.add('open');document.getElementById('navBackdrop').classList.add('open');document.body.style.overflow='hidden';}
+function closeNavDrawer(){document.getElementById('navDrawer').classList.remove('open');document.getElementById('navBackdrop').classList.remove('open');document.body.style.overflow='';}
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeNavDrawer();});
+</script>
+
 </body>
 </html>
