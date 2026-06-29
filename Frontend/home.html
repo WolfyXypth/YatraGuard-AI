@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Home — YatraGuard AI</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    :root {
+      --navy:#1a3a5c; --navy-deep:#0f2340; --navy-mid:#234b75;
+      --crimson:#c0392b; --crimson-h:#e04030;
+      --sky:#5ab4d6; --sky-light:#a8d8ec; --sky-pale:#eaf6fb;
+      --white:#ffffff; --off:#f5f9fc; --mist:#e2eef5; --border:#cde3ef;
+      --text:#1a2e3d; --muted:#5a7a90;
+      --success:#1e8a5a; --success-bg:#e8f7f0;
+      --warn:#c97a00; --warn-bg:#fff7e6;
+      --danger:#c0392b; --danger-bg:#fdf0ee;
+      --nav-h:64px;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth}
+    body{font-family:'Inter',sans-serif;background:var(--off);color:var(--text);line-height:1.6}
+    a{color:inherit;text-decoration:none}
+    button{font-family:inherit;cursor:pointer}
+
+    /* TOPBAR */
+    .topbar{position:fixed;top:0;left:0;right:0;z-index:1000;height:var(--nav-h);background:var(--white);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px;box-shadow:0 1px 12px rgba(26,58,92,0.08)}
+    .topbar-logo{display:flex;align-items:center;gap:10px;flex-shrink:0}
+    .topbar-logo img{width:40px;height:40px;border-radius:10px;object-fit:contain}
+    .topbar-logo-text{line-height:1.15}
+    .topbar-logo-text .t1{font-size:1.05rem;font-weight:800;letter-spacing:-0.02em;color:var(--navy)}
+    .topbar-logo-text .t1 .r{color:var(--crimson)}
+    .topbar-logo-text .t1 .b{color:var(--sky)}
+    .topbar-logo-text .t2{font-size:0.58rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;font-weight:500}
+    .topbar-nav{display:flex;align-items:center;gap:4px;flex:1;margin-left:16px}
+    .topbar-nav a{padding:6px 14px;border-radius:7px;font-size:0.875rem;font-weight:500;color:var(--muted);transition:background 0.15s,color 0.15s}
+    .topbar-nav a:hover{background:var(--sky-pale);color:var(--navy)}
+    .topbar-nav a.active{background:var(--sky-pale);color:var(--navy);font-weight:600}
+    .topbar-right{display:flex;align-items:center;gap:10px;flex-shrink:0}
+    .btn-howto{width:32px;height:32px;border-radius:50%;background:var(--mist);border:1.5px solid var(--border);color:var(--navy);font-weight:800;font-size:0.85rem;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background 0.15s;flex-shrink:0}
+    .btn-howto:hover{background:var(--sky-pale)}
+    .btn-user{display:none;align-items:center;gap:8px;background:var(--off);border:1.5px solid var(--border);border-radius:9px;padding:5px 12px 5px 6px;cursor:pointer;transition:border-color 0.15s}
+    .btn-user:hover{border-color:var(--sky)}
+    .btn-user img{width:28px;height:28px;border-radius:50%;object-fit:cover}
+    .btn-user-name{font-size:0.82rem;font-weight:600;color:var(--navy);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .btn-user.visible{display:flex}
+    .btn-signin-wrap{display:flex;align-items:center}
+    .btn-signin-wrap.hidden{display:none}
+    .btn-sos{background:var(--crimson);color:var(--white);font-weight:700;font-size:0.8rem;padding:7px 16px;border-radius:8px;border:none;letter-spacing:0.04em;box-shadow:0 2px 10px rgba(192,57,43,0.35);transition:background 0.15s,transform 0.1s;display:flex;align-items:center;gap:6px;animation:sos-glow 2.5s ease-in-out infinite}
+    @keyframes sos-glow{0%,100%{box-shadow:0 2px 10px rgba(192,57,43,0.35)}50%{box-shadow:0 2px 18px rgba(192,57,43,0.6)}}
+    .btn-sos:hover{background:var(--crimson-h);transform:translateY(-1px)}
+
+    /* LAYOUT */
+    .main-wrap{margin-top:var(--nav-h);display:grid;grid-template-columns:220px 1fr;min-height:calc(100vh - var(--nav-h))}
+    .sidebar{background:var(--white);border-right:1px solid var(--border);padding:20px 12px;position:sticky;top:var(--nav-h);height:calc(100vh - var(--nav-h));overflow-y:auto;scrollbar-width:thin}
+    .sidebar-section-label{font-size:0.65rem;font-weight:700;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;padding:0 10px;margin-bottom:6px;margin-top:16px}
+    .sidebar-section-label:first-child{margin-top:0}
+    .sidebar-link{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;font-size:0.875rem;font-weight:500;color:var(--muted);cursor:pointer;margin-bottom:2px;transition:background 0.15s,color 0.15s;border:none;background:transparent;width:100%;text-align:left;text-decoration:none}
+    .sidebar-link:hover{background:var(--sky-pale);color:var(--navy)}
+    .sidebar-link.active{background:var(--navy);color:var(--white)}
+    .sidebar-icon{font-size:1.05rem;flex-shrink:0;width:20px;text-align:center}
+    .sidebar-badge{margin-left:auto;background:var(--crimson);color:white;font-size:0.58rem;font-weight:700;padding:2px 7px;border-radius:10px}
+    .sidebar-coming{margin-left:auto;background:var(--mist);color:var(--muted);font-size:0.58rem;font-weight:600;padding:2px 7px;border-radius:10px}
+    .content{overflow-y:auto;background:var(--off)}
+
+    /* HERO */
+    .hero{background:linear-gradient(135deg,var(--navy-deep) 0%,var(--navy) 55%,var(--navy-mid) 100%);padding:60px 48px 56px;position:relative;overflow:hidden}
+    .hero-mountain{position:absolute;bottom:0;left:0;right:0;opacity:0.07;pointer-events:none}
+    .hero-inner{max-width:680px;position:relative;z-index:1}
+    .hero-eyebrow{display:inline-flex;align-items:center;gap:8px;background:rgba(90,180,214,0.15);border:1px solid rgba(90,180,214,0.3);border-radius:20px;padding:5px 14px;font-family:'JetBrains Mono',monospace;font-size:0.68rem;color:var(--sky-light);letter-spacing:0.06em;margin-bottom:20px}
+    .hero-eyebrow-dot{width:6px;height:6px;border-radius:50%;background:var(--sky);animation:blink 1.5s step-end infinite}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:0.15}}
+    .hero h1{font-family:'Playfair Display',serif;font-size:clamp(2rem,4vw,3.2rem);font-weight:900;color:var(--white);line-height:1.1;letter-spacing:-0.02em;margin-bottom:16px}
+    .hero h1 span{color:var(--sky)}
+    .hero p{font-size:1.05rem;color:rgba(168,216,236,0.9);max-width:520px;line-height:1.7;margin-bottom:32px}
+    .hero-actions{display:flex;gap:12px;flex-wrap:wrap}
+    .hero-btn-primary{background:var(--sky);color:var(--navy-deep);font-weight:700;font-size:0.9rem;padding:12px 28px;border-radius:9px;border:none;display:flex;align-items:center;gap:8px;transition:background 0.15s,transform 0.1s;cursor:pointer}
+    .hero-btn-primary:hover{background:#7fcce0;transform:translateY(-1px)}
+    .hero-btn-secondary{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:var(--white);font-weight:600;font-size:0.9rem;padding:12px 28px;border-radius:9px;display:flex;align-items:center;gap:8px;transition:background 0.15s;cursor:pointer;text-decoration:none}
+    .hero-btn-secondary:hover{background:rgba(255,255,255,0.14)}
+
+    /* WELCOME BANNER */
+    .welcome-banner{display:none;align-items:center;gap:14px;background:var(--success-bg);border:1.5px solid rgba(30,138,90,0.25);border-radius:12px;padding:14px 20px;margin:20px 32px 0}
+    .welcome-banner.visible{display:flex}
+    .welcome-banner img{width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0}
+    .welcome-banner-text{flex:1}
+    .welcome-banner-title{font-weight:700;font-size:0.92rem;color:var(--success)}
+    .welcome-banner-sub{font-size:0.78rem;color:var(--muted);margin-top:2px}
+    .welcome-banner-close{background:none;border:none;color:var(--muted);font-size:1.1rem;cursor:pointer;padding:0 4px}
+
+    /* CONTENT GRID */
+    .content-grid{display:grid;grid-template-columns:1fr 340px}
+    .main-column{padding:28px 32px;border-right:1px solid var(--border)}
+    .side-column{padding:24px 20px;background:var(--white)}
+    .section-title{font-size:1rem;font-weight:700;color:var(--navy);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+    .section-title::after{content:"";flex:1;height:1px;background:var(--border)}
+
+    /* FEATURE TILES */
+    .feature-tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px}
+    .feature-tile{background:var(--white);border:1.5px solid var(--border);border-radius:14px;padding:20px;cursor:pointer;transition:border-color 0.2s,box-shadow 0.2s,transform 0.15s;display:flex;flex-direction:column;gap:10px;position:relative;overflow:hidden;text-decoration:none;color:inherit}
+    .feature-tile::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--tile-accent,var(--sky));transform:scaleX(0);transform-origin:left;transition:transform 0.2s}
+    .feature-tile:hover::before{transform:scaleX(1)}
+    .feature-tile:hover{border-color:var(--tile-accent,var(--sky));box-shadow:0 4px 20px rgba(26,58,92,0.08);transform:translateY(-2px)}
+    .ft-top{display:flex;align-items:center;justify-content:space-between}
+    .ft-icon{width:44px;height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:1.25rem;flex-shrink:0}
+    .ft-status-chip{font-family:'JetBrains Mono',monospace;font-size:0.6rem;font-weight:600;padding:3px 9px;border-radius:12px;letter-spacing:0.04em}
+    .chip-soon{background:var(--mist);color:var(--muted)}
+    .ft-name{font-weight:700;font-size:0.9rem;color:var(--navy)}
+    .ft-desc{font-size:0.78rem;color:var(--muted);line-height:1.5}
+    .ft-arrow{font-size:0.75rem;color:var(--muted);align-self:flex-end;margin-top:auto}
+
+    /* NEWS */
+    .news-item{background:var(--white);padding:16px 18px;border:1px solid var(--border);border-radius:12px;margin-bottom:8px;display:grid;grid-template-columns:auto 1fr auto;align-items:flex-start;gap:14px;transition:box-shadow 0.15s}
+    .news-item:hover{box-shadow:0 2px 12px rgba(26,58,92,0.07)}
+    .news-tag{font-family:'JetBrains Mono',monospace;font-size:0.6rem;font-weight:600;padding:3px 9px;border-radius:6px;white-space:nowrap;margin-top:2px;letter-spacing:0.04em}
+    .tag-safety{background:var(--danger-bg);color:var(--danger)}
+    .tag-weather{background:var(--sky-pale);color:#1a6a8a}
+    .tag-trail{background:var(--success-bg);color:var(--success)}
+    .tag-rescue{background:var(--warn-bg);color:var(--warn)}
+    .news-headline{font-weight:600;font-size:0.88rem;color:var(--navy);line-height:1.4;margin-bottom:4px}
+    .news-meta{font-size:0.72rem;color:var(--muted)}
+    .news-source{font-family:'JetBrains Mono',monospace;font-size:0.62rem;color:var(--muted);white-space:nowrap;margin-top:2px;text-align:right}
+
+    /* RIGHT SIDEBAR CARDS */
+    .login-card{background:linear-gradient(135deg,var(--navy-deep),var(--navy-mid));border-radius:16px;padding:24px;margin-bottom:16px;text-align:center}
+    .login-card.hidden{display:none}
+    .login-card-logo{margin-bottom:14px}
+    .login-card-logo img{width:56px;height:56px;border-radius:14px}
+    .login-card-sub{font-size:0.78rem;color:var(--sky-light);opacity:0.85;margin-bottom:20px;line-height:1.5}
+    .google-btn-wrap{display:flex;justify-content:center;margin-bottom:10px}
+    .login-divider{display:flex;align-items:center;gap:8px;margin:10px 0}
+    .login-divider::before,.login-divider::after{content:"";flex:1;height:1px;background:rgba(255,255,255,0.12)}
+    .login-divider span{font-size:0.7rem;color:rgba(168,216,236,0.5)}
+    .btn-email-login{background:transparent;color:var(--sky-light);font-weight:500;font-size:0.82rem;padding:9px 16px;border-radius:8px;border:1px solid rgba(90,180,214,0.3);width:100%;transition:background 0.15s}
+    .btn-email-login:hover{background:rgba(90,180,214,0.1)}
+    .profile-card{display:none;background:var(--white);border:1.5px solid var(--border);border-radius:16px;padding:20px;margin-bottom:16px;text-align:center}
+    .profile-card.visible{display:block}
+    .profile-card img{width:64px;height:64px;border-radius:50%;object-fit:cover;margin-bottom:10px;border:3px solid var(--sky-pale)}
+    .profile-card-name{font-weight:700;font-size:0.95rem;color:var(--navy)}
+    .profile-card-email{font-size:0.72rem;color:var(--muted);margin-bottom:14px}
+    .profile-card-status{background:var(--success-bg);color:var(--success);font-size:0.72rem;font-weight:600;padding:4px 12px;border-radius:20px;display:inline-block;margin-bottom:14px}
+    .btn-signout{background:var(--mist);color:var(--muted);font-weight:600;font-size:0.8rem;padding:8px 16px;border-radius:8px;border:none;width:100%;transition:background 0.15s}
+    .btn-signout:hover{background:var(--danger-bg);color:var(--danger)}
+    .sos-widget{background:var(--danger-bg);border:1.5px solid rgba(192,57,43,0.25);border-radius:14px;padding:18px;margin-bottom:14px}
+    .sos-widget-title{font-weight:700;font-size:0.9rem;color:var(--crimson);margin-bottom:12px;display:flex;align-items:center;gap:7px}
+    .sos-contact{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(192,57,43,0.1);font-size:0.82rem}
+    .sos-contact:last-child{border-bottom:none}
+    .sos-contact-name{color:var(--text);font-weight:500}
+    .sos-contact-num{font-family:'JetBrains Mono',monospace;font-weight:600;font-size:0.78rem;color:var(--crimson)}
+
+    /* MODALS */
+    .modal-overlay{position:fixed;inset:0;z-index:2000;background:rgba(15,35,64,0.6);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center}
+    .modal-overlay.open{display:flex}
+    .modal-box{background:var(--white);border-radius:20px;width:90%;max-width:560px;max-height:85vh;overflow-y:auto;padding:36px;box-shadow:0 24px 80px rgba(15,35,64,0.25)}
+    .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+    .modal-title{font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:900;color:var(--navy)}
+    .modal-close{width:32px;height:32px;border-radius:50%;background:var(--mist);border:none;cursor:pointer;font-size:1rem;color:var(--muted);display:flex;align-items:center;justify-content:center}
+    .how-step{display:flex;gap:16px;margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+    .how-step:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+    .how-step-num{width:32px;height:32px;border-radius:50%;background:var(--navy);color:white;font-weight:700;font-size:0.85rem;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .how-step-body{flex:1}
+    .how-step-title{font-weight:700;font-size:0.9rem;color:var(--navy);margin-bottom:4px}
+    .how-step-text{font-size:0.82rem;color:var(--muted);line-height:1.55}
+    .sos-modal-box{background:var(--white);border-radius:20px;width:90%;max-width:460px;padding:36px;box-shadow:0 24px 80px rgba(192,57,43,0.2);text-align:center}
+    .sos-modal-icon{font-size:3rem;margin-bottom:12px}
+    .sos-modal-title{font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:900;color:var(--crimson);margin-bottom:8px}
+    .sos-modal-sub{font-size:0.88rem;color:var(--muted);margin-bottom:24px;line-height:1.55}
+    .sos-modal-contacts{text-align:left;margin-bottom:20px}
+    .sos-modal-contact{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:var(--danger-bg);border:1px solid rgba(192,57,43,0.15);border-radius:10px;margin-bottom:8px}
+    .sos-modal-contact-name{font-weight:600;font-size:0.88rem;color:var(--text)}
+    .sos-modal-contact-num{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--crimson);font-size:0.9rem}
+    .btn-sos-call{background:var(--crimson);color:white;font-weight:700;font-size:1rem;padding:14px 32px;border-radius:10px;border:none;width:100%;margin-bottom:10px;transition:background 0.15s;cursor:pointer}
+    .btn-sos-call:hover{background:var(--crimson-h)}
+    .btn-sos-cancel{background:var(--mist);color:var(--muted);font-weight:600;font-size:0.9rem;padding:11px 24px;border-radius:10px;border:none;width:100%;cursor:pointer}
+
+    /* FOOTER */
+    .footer{background:var(--navy-deep);color:rgba(168,216,236,0.7);padding:40px 48px 32px;display:grid;grid-template-columns:1fr auto;gap:24px;align-items:end}
+    .footer-brand{font-weight:700;font-size:1rem;color:var(--white);margin-bottom:6px}
+    .footer-brand span{color:var(--sky)}
+    .footer-desc{font-size:0.78rem;max-width:340px;line-height:1.6}
+    .footer-links{display:flex;gap:20px;flex-wrap:wrap}
+    .footer-links a{font-size:0.78rem;color:rgba(168,216,236,0.6);transition:color 0.15s}
+    .footer-links a:hover{color:var(--sky-light)}
+    .footer-copy{font-size:0.7rem;opacity:0.4;margin-top:16px}
+
+    /* TOAST */
+    .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--navy-deep);color:var(--white);padding:12px 24px;border-radius:10px;font-size:0.88rem;font-weight:500;box-shadow:0 8px 32px rgba(15,35,64,0.3);z-index:3000;transition:transform 0.3s ease;display:flex;align-items:center;gap:10px;white-space:nowrap}
+    .toast.show{transform:translateX(-50%) translateY(0)}
+
+    /* RESPONSIVE */
+    @media(max-width:1024px){.content-grid{grid-template-columns:1fr}.side-column{border-top:1px solid var(--border)}}
+    @media(max-width:768px){.main-wrap{grid-template-columns:1fr}.sidebar{display:none}.topbar-nav{display:none}.hero{padding:40px 20px}.main-column{padding:20px}.feature-tiles{grid-template-columns:1fr}.footer{grid-template-columns:1fr}}
+    @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+  </style>
+</head>
+<body>
+
+<!-- HOW TO USE MODAL -->
+<div class="modal-overlay" id="howModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">How to use YatraGuard AI</div>
+      <button class="modal-close" onclick="closeModal('howModal')">✕</button>
+    </div>
+    <div class="how-step"><div class="how-step-num">1</div><div class="how-step-body"><div class="how-step-title">Sign in with Google</div><div class="how-step-text">Click "Sign in with Google" on the right panel or in the top bar. Your Google account syncs your saved treks, health baselines, and emergency contacts across devices.</div></div></div>
+    <div class="how-step"><div class="how-step-num">2</div><div class="how-step-body"><div class="how-step-title">Choose your trek</div><div class="how-step-text">Go to <strong>My Trek</strong> in the sidebar. Select from Nepal's major trails and set your start date and group size.</div></div></div>
+    <div class="how-step"><div class="how-step-num">3</div><div class="how-step-body"><div class="how-step-title">View your Route Map</div><div class="how-step-text">The <strong>Route Map</strong> section shows live trail conditions, danger zones, and safe alternatives. Connect GPS to see your real-time location on the trail.</div></div></div>
+    <div class="how-step"><div class="how-step-num">4</div><div class="how-step-body"><div class="how-step-title">Sync Apple Watch for Vitals</div><div class="how-step-text">Open the <strong>Vitals</strong> section and follow the Apple Watch pairing guide. YatraGuard AI monitors your heart rate, SpO₂, and HRV to detect altitude sickness early.</div></div></div>
+    <div class="how-step"><div class="how-step-num">5</div><div class="how-step-body"><div class="how-step-title">Emergency SOS</div><div class="how-step-text">The red <strong>SOS</strong> button (top-right, every page) gives instant access to Nepal emergency services and shares your GPS location with rescue teams and your emergency contacts.</div></div></div>
+  </div>
+</div>
+
+<!-- SOS MODAL -->
+<div class="modal-overlay" id="sosModal">
+  <div class="sos-modal-box">
+    <div class="sos-modal-icon">🆘</div>
+    <div class="sos-modal-title">Emergency SOS</div>
+    <div class="sos-modal-sub">Your GPS location will be shared with rescue services. Choose who to contact:</div>
+    <div class="sos-modal-contacts">
+      <div class="sos-modal-contact"><span class="sos-modal-contact-name">🇳🇵 Nepal Police</span><span class="sos-modal-contact-num">100</span></div>
+      <div class="sos-modal-contact"><span class="sos-modal-contact-name">🚁 HAMS Air Rescue</span><span class="sos-modal-contact-num">+977-1-4488635</span></div>
+      <div class="sos-modal-contact"><span class="sos-modal-contact-name">🏥 CIWEC Clinic Kathmandu</span><span class="sos-modal-contact-num">+977-1-4435232</span></div>
+      <div class="sos-modal-contact"><span class="sos-modal-contact-name">🏔️ Himalayan Rescue Assoc.</span><span class="sos-modal-contact-num">+977-1-4440292</span></div>
+    </div>
+    <button class="btn-sos-call" onclick="closeModal('sosModal'); showToast('📡 GPS location sent to rescue teams')">📡 Send GPS + Alert Rescue Team</button>
+    <button class="btn-sos-cancel" onclick="closeModal('sosModal')">Cancel</button>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<nav class="topbar">
+  <a class="topbar-logo" href="home.html">
+    <img src="logo.png" alt="YatraGuard AI"/>
+    <div class="topbar-logo-text">
+      <div class="t1">Yatra<span class="r">Guard</span> <span class="b">AI</span></div>
+      <div class="t2">Safety Companion · Nepal</div>
+    </div>
+  </a>
+  <nav class="topbar-nav">
+    <a href="home.html" class="active">Home</a>
+    <a href="map.html">Route Map</a>
+    <a href="vitals.html">Vitals</a>
+    <a href="about.html">About</a>
+  </nav>
+  <div class="topbar-right">
+    <button class="btn-howto" onclick="openModal('howModal')" title="How to use YatraGuard AI">?</button>
+    <div class="btn-signin-wrap" id="signinWrap">
+      <div id="g_id_onload" data-client_id="946759380589-db7d35kk61mhcr0p2a6qc67qql2pr7el.apps.googleusercontent.com" data-callback="handleGoogleLogin" data-auto_prompt="false"></div>
+      <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="outline" data-text="signin_with" data-size="large" data-logo_alignment="left"></div>
+    </div>
+    <button class="btn-user" id="userBtn" onclick="showUserMenu()">
+      <img id="navUserPhoto" src="" alt=""/>
+      <span class="btn-user-name" id="navUserName"></span>
+      <span style="font-size:0.65rem;color:var(--muted);">▼</span>
+    </button>
+    <button class="btn-sos" onclick="openModal('sosModal')">🆘 SOS</button>
+  </div>
+</nav>
+
+<!-- MAIN LAYOUT -->
+<div class="main-wrap">
+  <aside class="sidebar">
+    <div class="sidebar-section-label">Navigation</div>
+    <a class="sidebar-link active" href="home.html"><span class="sidebar-icon">🏠</span> Home</a>
+    <a class="sidebar-link" href="about.html"><span class="sidebar-icon">ℹ️</span> About</a>
+    <div class="sidebar-section-label">Features</div>
+    <a class="sidebar-link" href="map.html"><span class="sidebar-icon">🗺️</span> Route Map <span class="sidebar-coming">Soon</span></a>
+    <a class="sidebar-link" href="vitals.html"><span class="sidebar-icon">⌚</span> Vitals <span class="sidebar-coming">Soon</span></a>
+    <div class="sidebar-section-label">Safety</div>
+    <button class="sidebar-link" onclick="openModal('sosModal')"><span class="sidebar-icon">🆘</span> Emergency SOS <span class="sidebar-badge">!</span></button>
+    <button class="sidebar-link" onclick="openModal('howModal')"><span class="sidebar-icon">📖</span> How to Use</button>
+    <div class="sidebar-section-label">Account</div>
+    <button class="sidebar-link" id="sidebarSignIn" onclick="document.querySelector('.g_id_signin').click()"><span class="sidebar-icon">👤</span> Sign In with Google</button>
+    <button class="sidebar-link" id="sidebarSignOut" style="display:none;" onclick="signOut()"><span class="sidebar-icon">🚪</span> Sign Out</button>
+  </aside>
+
+  <div class="content">
+    <div class="hero">
+      <svg class="hero-mountain" viewBox="0 0 1200 180" preserveAspectRatio="none"><path d="M0,180 L100,120 L180,145 L280,80 L360,110 L460,40 L540,75 L640,20 L720,55 L820,30 L900,70 L980,45 L1060,90 L1140,60 L1200,95 L1200,180Z" fill="white"/></svg>
+      <div class="hero-inner">
+        <div class="hero-eyebrow"><span class="hero-eyebrow-dot"></span> AI-Powered · Nepal Mountains &amp; Trails</div>
+        <h1>Your Shield Above<br/><span>the Clouds</span></h1>
+        <p>YatraGuard AI is an intelligent safety companion for trekkers exploring Nepal. We're building AI that predicts altitude sickness, landslides, and severe weather — keeping you safe on every trail.</p>
+        <div class="hero-actions">
+          <button class="hero-btn-primary" onclick="openModal('howModal')">🛡️ Get Started</button>
+          <a class="hero-btn-secondary" href="about.html">Learn More →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="welcome-banner" id="welcomeBanner">
+      <img id="welcomePhoto" src="" alt=""/>
+      <div class="welcome-banner-text">
+        <div class="welcome-banner-title" id="welcomeName">Welcome back!</div>
+        <div class="welcome-banner-sub">You're signed in. Your trek data and safety preferences are synced.</div>
+      </div>
+      <button class="welcome-banner-close" onclick="document.getElementById('welcomeBanner').classList.remove('visible')">✕</button>
+    </div>
+
+    <div class="content-grid">
+      <div class="main-column">
+        <div class="section-title">Platform Features</div>
+        <div class="feature-tiles">
+          <a class="feature-tile" style="--tile-accent:var(--navy);" href="map.html">
+            <div class="ft-top"><div class="ft-icon" style="background:var(--sky-pale);">🗺️</div><span class="ft-status-chip chip-soon">Coming Soon</span></div>
+            <div class="ft-name">Route Map</div>
+            <div class="ft-desc">Live trail map with danger zones, alternate routes, and your GPS position. Connects to Nepal's trail network database.</div>
+            <div class="ft-arrow">Open section →</div>
+          </a>
+          <a class="feature-tile" style="--tile-accent:var(--crimson);" href="vitals.html">
+            <div class="ft-top"><div class="ft-icon" style="background:#fff0ee;">⌚</div><span class="ft-status-chip chip-soon">Coming Soon</span></div>
+            <div class="ft-name">Vitals from Apple Watch</div>
+            <div class="ft-desc">Sync your Apple Watch to monitor heart rate, SpO₂, and HRV. AI detects early signs of altitude sickness before symptoms appear.</div>
+            <div class="ft-arrow">Open section →</div>
+          </a>
+        </div>
+
+        <div class="section-title" style="margin-top:8px;">Nepal Trek News</div>
+        <div class="news-item"><span class="news-tag tag-safety">Safety</span><div><div class="news-headline">TAAN urges trekkers to register at TIMS checkposts before entering restricted areas</div><div class="news-meta">Trekking Agencies' Association of Nepal · June 2026</div></div><div class="news-source">TAAN<br/>Official</div></div>
+        <div class="news-item"><span class="news-tag tag-weather">Weather</span><div><div class="news-headline">Monsoon season begins: Annapurna and Langtang trails see increased landslide advisories</div><div class="news-meta">Dept. of Hydrology and Meteorology, Nepal · May 2026</div></div><div class="news-source">DHM<br/>Nepal</div></div>
+        <div class="news-item"><span class="news-tag tag-rescue">Rescue</span><div><div class="news-headline">Nepal Tourism Board launches updated trail safety guidelines for high-altitude trekkers</div><div class="news-meta">Nepal Tourism Board · May 2026</div></div><div class="news-source">NTB<br/>Official</div></div>
+        <div class="news-item"><span class="news-tag tag-trail">Trail</span><div><div class="news-headline">Manaslu Circuit reopens after winter closure — permits available at Gorkha District Office</div><div class="news-meta">Nepal Dept. of Immigration · April 2026</div></div><div class="news-source">DoI<br/>Nepal</div></div>
+        <div class="news-item"><span class="news-tag tag-safety">Safety</span><div><div class="news-headline">Himalayan Rescue Association: acclimatise at least one day per 500m above 3,000m</div><div class="news-meta">Himalayan Rescue Association Nepal · March 2026</div></div><div class="news-source">HRA<br/>Nepal</div></div>
+      </div>
+
+      <div class="side-column">
+        <div class="login-card" id="loginCard">
+          <div class="login-card-logo"><img src="logo.png" alt=""/></div>
+          <div class="login-card-sub">Save your treks, sync Apple Watch vitals, and get personalised AI safety alerts on trail.</div>
+          <div class="google-btn-wrap" id="sidebarGoogleBtn">
+            <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="filled_blue" data-text="signin_with" data-size="large" data-logo_alignment="left" data-width="260"></div>
+          </div>
+          <div class="login-divider"><span>or</span></div>
+          <button class="btn-email-login">Sign in with email →</button>
+        </div>
+        <div class="profile-card" id="profileCard">
+          <img id="profilePhoto" src="" alt=""/>
+          <div class="profile-card-name" id="profileName"></div>
+          <div class="profile-card-email" id="profileEmail"></div>
+          <div class="profile-card-status">✓ Signed in</div>
+          <button class="btn-signout" onclick="signOut()">Sign out</button>
+        </div>
+        <div class="sos-widget">
+          <div class="sos-widget-title">🆘 Emergency Contacts</div>
+          <div class="sos-contact"><span class="sos-contact-name">Nepal Police</span><span class="sos-contact-num">100</span></div>
+          <div class="sos-contact"><span class="sos-contact-name">HAMS Air Rescue</span><span class="sos-contact-num">+977-1-4488635</span></div>
+          <div class="sos-contact"><span class="sos-contact-name">Tourist Police</span><span class="sos-contact-num">1144</span></div>
+          <div class="sos-contact"><span class="sos-contact-name">HRA Nepal</span><span class="sos-contact-num">+977-1-4440292</span></div>
+        </div>
+        <div style="background:var(--white);border:1px solid var(--border);border-radius:14px;padding:18px;">
+          <div style="font-weight:700;font-size:0.88rem;color:var(--navy);margin-bottom:8px;">📖 New to YatraGuard?</div>
+          <div style="font-size:0.78rem;color:var(--muted);line-height:1.55;margin-bottom:14px;">Learn how to set up your trek, connect Apple Watch, and stay safe on Nepal's trails.</div>
+          <button onclick="openModal('howModal')" style="background:var(--navy);color:white;font-weight:600;font-size:0.82rem;padding:9px 18px;border-radius:8px;border:none;width:100%;cursor:pointer;">How to use this app →</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div>
+        <div class="footer-brand">Yatra<span>Guard</span> AI</div>
+        <div class="footer-desc">An intelligent safety companion for trekkers exploring Nepal's mountains and trails. Built at a hackathon. 🇳🇵</div>
+        <div class="footer-copy">© 2025 YatraGuard AI · Nepal</div>
+      </div>
+      <div class="footer-links">
+        <a href="#">Privacy</a><a href="#">Terms</a>
+        <a href="#" onclick="openModal('howModal');return false;">Help</a>
+        <a href="#" onclick="openModal('sosModal');return false;">Emergency SOS</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const CLIENT_ID = '946759380589-db7d35kk61mhcr0p2a6qc67qql2pr7el.apps.googleusercontent.com';
+
+  function handleGoogleLogin(response) {
+    const base64 = response.credential.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+    const payload = JSON.parse(atob(base64));
+    const user = { name: payload.name, given: payload.given_name, email: payload.email, picture: payload.picture };
+    applyLogin(user);
+    showToast('👋 Welcome, ' + user.given + '! You\'re signed in.');
+  }
+
+  function applyLogin(user) {
+    document.getElementById('signinWrap').classList.add('hidden');
+    const userBtn = document.getElementById('userBtn');
+    userBtn.classList.add('visible');
+    document.getElementById('navUserPhoto').src = user.picture;
+    document.getElementById('navUserName').textContent = user.given;
+    const banner = document.getElementById('welcomeBanner');
+    banner.classList.add('visible');
+    document.getElementById('welcomePhoto').src = user.picture;
+    document.getElementById('welcomeName').textContent = 'Welcome back, ' + user.given + '!';
+    document.getElementById('loginCard').classList.add('hidden');
+    const pc = document.getElementById('profileCard');
+    pc.classList.add('visible');
+    document.getElementById('profilePhoto').src = user.picture;
+    document.getElementById('profileName').textContent = user.name;
+    document.getElementById('profileEmail').textContent = user.email;
+    document.getElementById('sidebarSignIn').style.display = 'none';
+    document.getElementById('sidebarSignOut').style.display = 'flex';
+    sessionStorage.setItem('yg_user', JSON.stringify(user));
+  }
+
+  function signOut() {
+    sessionStorage.removeItem('yg_user');
+    document.getElementById('signinWrap').classList.remove('hidden');
+    document.getElementById('userBtn').classList.remove('visible');
+    document.getElementById('welcomeBanner').classList.remove('visible');
+    document.getElementById('loginCard').classList.remove('hidden');
+    document.getElementById('profileCard').classList.remove('visible');
+    document.getElementById('sidebarSignIn').style.display = 'flex';
+    document.getElementById('sidebarSignOut').style.display = 'none';
+    if (window.google && window.google.accounts) google.accounts.id.disableAutoSelect();
+    showToast('✓ Signed out successfully');
+  }
+
+  function showUserMenu() { if (confirm('Sign out of YatraGuard AI?')) signOut(); }
+
+  window.addEventListener('load', () => {
+    const saved = sessionStorage.getItem('yg_user');
+    if (saved) { try { applyLogin(JSON.parse(saved)); } catch(e) {} }
+  });
+
+  function openModal(id) { document.getElementById(id).classList.add('open'); document.body.style.overflow = 'hidden'; }
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); document.body.style.overflow = ''; }
+  document.querySelectorAll('.modal-overlay').forEach(el => {
+    el.addEventListener('click', e => { if (e.target === el) closeModal(el.id); });
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.open').forEach(m => closeModal(m.id));
+  });
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3500);
+  }
+</script>
+</body>
+</html>

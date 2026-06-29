@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Route Map — YatraGuard AI</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    :root {
+      --navy:#1a3a5c; --navy-deep:#0f2340; --navy-mid:#234b75;
+      --crimson:#c0392b; --crimson-h:#e04030;
+      --sky:#5ab4d6; --sky-light:#a8d8ec; --sky-pale:#eaf6fb;
+      --white:#ffffff; --off:#f5f9fc; --mist:#e2eef5; --border:#cde3ef;
+      --text:#1a2e3d; --muted:#5a7a90;
+      --success:#1e8a5a; --success-bg:#e8f7f0;
+      --danger:#c0392b; --danger-bg:#fdf0ee;
+      --nav-h:64px;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth}
+    body{font-family:'Inter',sans-serif;background:var(--off);color:var(--text);line-height:1.6}
+    a{color:inherit;text-decoration:none}
+    button{font-family:inherit;cursor:pointer}
+    .topbar{position:fixed;top:0;left:0;right:0;z-index:1000;height:var(--nav-h);background:var(--white);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px;box-shadow:0 1px 12px rgba(26,58,92,0.08)}
+    .topbar-logo{display:flex;align-items:center;gap:10px;flex-shrink:0}
+    .topbar-logo img{width:40px;height:40px;border-radius:10px;object-fit:contain}
+    .topbar-logo-text{line-height:1.15}
+    .topbar-logo-text .t1{font-size:1.05rem;font-weight:800;letter-spacing:-0.02em;color:var(--navy)}
+    .topbar-logo-text .t1 .r{color:var(--crimson)}
+    .topbar-logo-text .t1 .b{color:var(--sky)}
+    .topbar-logo-text .t2{font-size:0.58rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;font-weight:500}
+    .topbar-nav{display:flex;align-items:center;gap:4px;flex:1;margin-left:16px}
+    .topbar-nav a{padding:6px 14px;border-radius:7px;font-size:0.875rem;font-weight:500;color:var(--muted);transition:background 0.15s,color 0.15s}
+    .topbar-nav a:hover{background:var(--sky-pale);color:var(--navy)}
+    .topbar-nav a.active{background:var(--sky-pale);color:var(--navy);font-weight:600}
+    .topbar-right{display:flex;align-items:center;gap:10px;flex-shrink:0}
+    .btn-howto{width:32px;height:32px;border-radius:50%;background:var(--mist);border:1.5px solid var(--border);color:var(--navy);font-weight:800;font-size:0.85rem;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background 0.15s;flex-shrink:0}
+    .btn-howto:hover{background:var(--sky-pale)}
+    .btn-user{display:none;align-items:center;gap:8px;background:var(--off);border:1.5px solid var(--border);border-radius:9px;padding:5px 12px 5px 6px;cursor:pointer;transition:border-color 0.15s}
+    .btn-user:hover{border-color:var(--sky)}
+    .btn-user img{width:28px;height:28px;border-radius:50%;object-fit:cover}
+    .btn-user-name{font-size:0.82rem;font-weight:600;color:var(--navy);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .btn-user.visible{display:flex}
+    .btn-signin-wrap{display:flex;align-items:center}
+    .btn-signin-wrap.hidden{display:none}
+    .btn-sos{background:var(--crimson);color:var(--white);font-weight:700;font-size:0.8rem;padding:7px 16px;border-radius:8px;border:none;letter-spacing:0.04em;box-shadow:0 2px 10px rgba(192,57,43,0.35);transition:background 0.15s,transform 0.1s;display:flex;align-items:center;gap:6px;animation:sos-glow 2.5s ease-in-out infinite}
+    @keyframes sos-glow{0%,100%{box-shadow:0 2px 10px rgba(192,57,43,0.35)}50%{box-shadow:0 2px 18px rgba(192,57,43,0.6)}}
+    .btn-sos:hover{background:var(--crimson-h);transform:translateY(-1px)}
+    .main-wrap{margin-top:var(--nav-h);display:grid;grid-template-columns:220px 1fr;min-height:calc(100vh - var(--nav-h))}
+    .sidebar{background:var(--white);border-right:1px solid var(--border);padding:20px 12px;position:sticky;top:var(--nav-h);height:calc(100vh - var(--nav-h));overflow-y:auto;scrollbar-width:thin}
+    .sidebar-section-label{font-size:0.65rem;font-weight:700;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;padding:0 10px;margin-bottom:6px;margin-top:16px}
+    .sidebar-section-label:first-child{margin-top:0}
+    .sidebar-link{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;font-size:0.875rem;font-weight:500;color:var(--muted);cursor:pointer;margin-bottom:2px;transition:background 0.15s,color 0.15s;border:none;background:transparent;width:100%;text-align:left;text-decoration:none}
+    .sidebar-link:hover{background:var(--sky-pale);color:var(--navy)}
+    .sidebar-link.active{background:var(--navy);color:var(--white)}
+    .sidebar-icon{font-size:1.05rem;flex-shrink:0;width:20px;text-align:center}
+    .sidebar-badge{margin-left:auto;background:var(--crimson);color:white;font-size:0.58rem;font-weight:700;padding:2px 7px;border-radius:10px}
+    .sidebar-coming{margin-left:auto;background:var(--mist);color:var(--muted);font-size:0.58rem;font-weight:600;padding:2px 7px;border-radius:10px}
+    .content{overflow-y:auto;background:var(--off)}
+    .hero{background:linear-gradient(135deg,var(--navy-deep) 0%,var(--navy) 55%,var(--navy-mid) 100%);padding:40px 48px;position:relative;overflow:hidden}
+    .hero-inner{max-width:680px;position:relative;z-index:1}
+    .hero-eyebrow{display:inline-flex;align-items:center;gap:8px;background:rgba(90,180,214,0.15);border:1px solid rgba(90,180,214,0.3);border-radius:20px;padding:5px 14px;font-family:'JetBrains Mono',monospace;font-size:0.68rem;color:var(--sky-light);letter-spacing:0.06em;margin-bottom:20px}
+    .hero-eyebrow-dot{width:6px;height:6px;border-radius:50%;background:var(--sky);animation:blink 1.5s step-end infinite}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:0.15}}
+    .hero h1{font-family:'Playfair Display',serif;font-size:clamp(2rem,4vw,3.2rem);font-weight:900;color:var(--white);line-height:1.1;letter-spacing:-0.02em;margin-bottom:16px}
+    .hero h1 span{color:var(--sky)}
+    .hero p{font-size:1.05rem;color:rgba(168,216,236,0.9);max-width:520px;line-height:1.7;margin-bottom:0}
+    .placeholder-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:420px;text-align:center;padding:40px}
+    .placeholder-icon{font-size:3.5rem;margin-bottom:20px;opacity:0.4}
+    .placeholder-title{font-weight:700;font-size:1.2rem;color:var(--navy);margin-bottom:8px}
+    .placeholder-sub{font-size:0.9rem;color:var(--muted);max-width:380px;line-height:1.6;margin-bottom:24px}
+    .placeholder-badge{background:var(--navy);color:var(--white);font-family:'JetBrains Mono',monospace;font-size:0.72rem;padding:7px 18px;border-radius:8px}
+    .modal-overlay{position:fixed;inset:0;z-index:2000;background:rgba(15,35,64,0.6);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center}
+    .modal-overlay.open{display:flex}
+    .modal-box{background:var(--white);border-radius:20px;width:90%;max-width:560px;max-height:85vh;overflow-y:auto;padding:36px;box-shadow:0 24px 80px rgba(15,35,64,0.25)}
+    .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+    .modal-title{font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:900;color:var(--navy)}
+    .modal-close{width:32px;height:32px;border-radius:50%;background:var(--mist);border:none;cursor:pointer;font-size:1rem;color:var(--muted);display:flex;align-items:center;justify-content:center}
+    .how-step{display:flex;gap:16px;margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+    .how-step:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+    .how-step-num{width:32px;height:32px;border-radius:50%;background:var(--navy);color:white;font-weight:700;font-size:0.85rem;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .how-step-body{flex:1}
+    .how-step-title{font-weight:700;font-size:0.9rem;color:var(--navy);margin-bottom:4px}
+    .how-step-text{font-size:0.82rem;color:var(--muted);line-height:1.55}
+    .sos-modal-box{background:var(--white);border-radius:20px;width:90%;max-width:460px;padding:36px;box-shadow:0 24px 80px rgba(192,57,43,0.2);text-align:center}
+    .sos-modal-icon{font-size:3rem;margin-bottom:12px}
+    .sos-modal-title{font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:900;color:var(--crimson);margin-bottom:8px}
+    .sos-modal-sub{font-size:0.88rem;color:var(--muted);margin-bottom:24px;line-height:1.55}
+    .sos-modal-contacts{text-align:left;margin-bottom:20px}
+    .sos-modal-contact{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:var(--danger-bg);border:1px solid rgba(192,57,43,0.15);border-radius:10px;margin-bottom:8px}
+    .sos-modal-contact-name{font-weight:600;font-size:0.88rem;color:var(--text)}
+    .sos-modal-contact-num{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--crimson);font-size:0.9rem}
+    .btn-sos-call{background:var(--crimson);color:white;font-weight:700;font-size:1rem;padding:14px 32px;border-radius:10px;border:none;width:100%;margin-bottom:10px;transition:background 0.15s;cursor:pointer}
+    .btn-sos-call:hover{background:var(--crimson-h)}
+    .btn-sos-cancel{background:var(--mist);color:var(--muted);font-weight:600;font-size:0.9rem;padding:11px 24px;border-radius:10px;border:none;width:100%;cursor:pointer}
+    .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--navy-deep);color:var(--white);padding:12px 24px;border-radius:10px;font-size:0.88rem;font-weight:500;box-shadow:0 8px 32px rgba(15,35,64,0.3);z-index:3000;transition:transform 0.3s ease;display:flex;align-items:center;gap:10px;white-space:nowrap}
+    .toast.show{transform:translateX(-50%) translateY(0)}
+    @media(max-width:768px){.main-wrap{grid-template-columns:1fr}.sidebar{display:none}.topbar-nav{display:none}.hero{padding:40px 20px}}
+    @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+  </style>
+</head>
+<body>
+
+<div class="modal-overlay" id="howModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">How to use YatraGuard AI</div>
+      <button class="modal-close" onclick="closeModal('howModal')">✕</button>
+    </div>
+    <div class="how-step"><div class="how-step-num">1</div><div class="how-step-body"><div class="how-step-title">Sign in with Google</div><div class="how-step-text">Click "Sign in with Google" on the right panel or in the top bar. Your Google account syncs your saved treks, health baselines, and emergency contacts across devices.</div></div></div>
+    <div class="how-step"><div class="how-step-num">2</div><div class="how-step-body"><div class="how-step-title">Choose your trek</div><div class="how-step-text">Go to <strong>My Trek</strong> in the sidebar. Select from Nepal's major trails and set your start date and group size.</div></div></div>
+    <div class="how-step"><div class="how-step-num">3</div><div class="how-step-body"><div class="how-step-title">View your Route Map</div><div class="how-step-text">The <strong>Route Map</strong> section shows live trail conditions, danger zones, and safe alternatives. Connect GPS to see your real-time location on the trail.</div></div></div>
+    <div class="how-step"><div class="how-step-num">4</div><div class="how-step-body"><div class="how-step-title">Sync Apple Watch for Vitals</div><div class="how-step-text">Open the <strong>Vitals</strong> section and follow the Apple Watch pairing guide. YatraGuard AI monitors your heart rate, SpO₂, and HRV to detect altitude sickness early.</div></div></div>
+    <div class="how-step"><div class="how-step-num">5</div><div class="how-step-body"><div class="how-step-title">Emergency SOS</div><div class="how-step-text">The red <strong>SOS</strong> button (top-right, every page) gives instant access to Nepal emergency services and shares your GPS location with rescue teams and your emergency contacts.</div></div></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="sosModal">
+  <div class="sos-modal-box">
+    <div class="sos-modal-icon">🆘</div>
+    <div class="sos-modal-title">Emergency SOS</div>
+    <div class="sos-modal-sub">Your GPS location will be shared with rescue services. Choose who to contact:</div>
+    <div class="sos-modal-contacts">
+      <div class="sos-modal-contact"><span class="sos-modal-contact-name">🇳🇵 Nepal Police</span><span class="sos-modal-contact-num">100</span></div>
+      <div class="sos-modal-contact"><span class="sos-modal-contact-name">🚁 HAMS Air Rescue</span><span class="sos-modal-contact-num">+977-1-4488635</span></div>
+      <div class="sos-modal-contact"><span class="sos-modal-contact-name">🏥 CIWEC Clinic Kathmandu</span><span class="sos-modal-contact-num">+977-1-4435232</span></div>
+      <div class="sos-modal-contact"><span class="sos-modal-contact-name">🏔️ Himalayan Rescue Assoc.</span><span class="sos-modal-contact-num">+977-1-4440292</span></div>
+    </div>
+    <button class="btn-sos-call" onclick="closeModal('sosModal'); showToast('📡 GPS location sent to rescue teams')">📡 Send GPS + Alert Rescue Team</button>
+    <button class="btn-sos-cancel" onclick="closeModal('sosModal')">Cancel</button>
+  </div>
+</div>
+
+<nav class="topbar">
+  <a class="topbar-logo" href="home.html">
+    <img src="logo.png" alt="YatraGuard AI"/>
+    <div class="topbar-logo-text">
+      <div class="t1">Yatra<span class="r">Guard</span> <span class="b">AI</span></div>
+      <div class="t2">Safety Companion · Nepal</div>
+    </div>
+  </a>
+  <nav class="topbar-nav">
+    <a href="home.html">Home</a>
+    <a href="map.html" class="active">Route Map</a>
+    <a href="vitals.html">Vitals</a>
+    <a href="about.html">About</a>
+  </nav>
+  <div class="topbar-right">
+    <button class="btn-howto" onclick="openModal('howModal')" title="How to use YatraGuard AI">?</button>
+    <div class="btn-signin-wrap" id="signinWrap">
+      <div id="g_id_onload" data-client_id="946759380589-db7d35kk61mhcr0p2a6qc67qql2pr7el.apps.googleusercontent.com" data-callback="handleGoogleLogin" data-auto_prompt="false"></div>
+      <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="outline" data-text="signin_with" data-size="large" data-logo_alignment="left"></div>
+    </div>
+    <button class="btn-user" id="userBtn" onclick="showUserMenu()">
+      <img id="navUserPhoto" src="" alt=""/>
+      <span class="btn-user-name" id="navUserName"></span>
+      <span style="font-size:0.65rem;color:var(--muted);">▼</span>
+    </button>
+    <button class="btn-sos" onclick="openModal('sosModal')">🆘 SOS</button>
+  </div>
+</nav>
+
+<div class="main-wrap">
+  <aside class="sidebar">
+    <div class="sidebar-section-label">Navigation</div>
+    <a class="sidebar-link" href="home.html"><span class="sidebar-icon">🏠</span> Home</a>
+    <a class="sidebar-link" href="about.html"><span class="sidebar-icon">ℹ️</span> About</a>
+    <div class="sidebar-section-label">Features</div>
+    <a class="sidebar-link active" href="map.html"><span class="sidebar-icon">🗺️</span> Route Map <span class="sidebar-coming">Soon</span></a>
+    <a class="sidebar-link" href="vitals.html"><span class="sidebar-icon">⌚</span> Vitals <span class="sidebar-coming">Soon</span></a>
+    <div class="sidebar-section-label">Safety</div>
+    <button class="sidebar-link" onclick="openModal('sosModal')"><span class="sidebar-icon">🆘</span> Emergency SOS <span class="sidebar-badge">!</span></button>
+    <button class="sidebar-link" onclick="openModal('howModal')"><span class="sidebar-icon">📖</span> How to Use</button>
+    <div class="sidebar-section-label">Account</div>
+    <button class="sidebar-link" id="sidebarSignIn" onclick="document.querySelector('.g_id_signin').click()"><span class="sidebar-icon">👤</span> Sign In with Google</button>
+    <button class="sidebar-link" id="sidebarSignOut" style="display:none;" onclick="signOut()"><span class="sidebar-icon">🚪</span> Sign Out</button>
+  </aside>
+
+  <div class="content">
+    <div class="hero">
+      <div class="hero-inner">
+        <div class="hero-eyebrow"><span class="hero-eyebrow-dot"></span> Route Map · Coming Soon</div>
+        <h1>Trail <span>Route Map</span></h1>
+        <p>Live trail maps, danger zones, GPS tracking, and AI-suggested alternate routes for Nepal's major trekking trails.</p>
+      </div>
+    </div>
+    <div class="placeholder-screen">
+      <div class="placeholder-icon">🗺️</div>
+      <div class="placeholder-title">Route Map — Coming Soon</div>
+      <div class="placeholder-sub">This section will show your live GPS position on Nepal's trail network, highlight landslide-risk zones, and suggest safe alternate routes powered by real-time data.</div>
+      <div class="placeholder-badge">🔒 Sign in to unlock when ready</div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script>
+  function handleGoogleLogin(response) {
+    const base64 = response.credential.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+    const payload = JSON.parse(atob(base64));
+    const user = { name: payload.name, given: payload.given_name, email: payload.email, picture: payload.picture };
+    applyLogin(user);
+    showToast('👋 Welcome, ' + user.given + '! You\'re signed in.');
+  }
+  function applyLogin(user) {
+    document.getElementById('signinWrap').classList.add('hidden');
+    document.getElementById('userBtn').classList.add('visible');
+    document.getElementById('navUserPhoto').src = user.picture;
+    document.getElementById('navUserName').textContent = user.given;
+    document.getElementById('sidebarSignIn').style.display = 'none';
+    document.getElementById('sidebarSignOut').style.display = 'flex';
+    sessionStorage.setItem('yg_user', JSON.stringify(user));
+  }
+  function signOut() {
+    sessionStorage.removeItem('yg_user');
+    document.getElementById('signinWrap').classList.remove('hidden');
+    document.getElementById('userBtn').classList.remove('visible');
+    document.getElementById('sidebarSignIn').style.display = 'flex';
+    document.getElementById('sidebarSignOut').style.display = 'none';
+    if (window.google && window.google.accounts) google.accounts.id.disableAutoSelect();
+    showToast('✓ Signed out successfully');
+  }
+  function showUserMenu() { if (confirm('Sign out of YatraGuard AI?')) signOut(); }
+  window.addEventListener('load', () => {
+    const saved = sessionStorage.getItem('yg_user');
+    if (saved) { try { applyLogin(JSON.parse(saved)); } catch(e) {} }
+  });
+  function openModal(id) { document.getElementById(id).classList.add('open'); document.body.style.overflow = 'hidden'; }
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); document.body.style.overflow = ''; }
+  document.querySelectorAll('.modal-overlay').forEach(el => {
+    el.addEventListener('click', e => { if (e.target === el) closeModal(el.id); });
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.open').forEach(m => closeModal(m.id));
+  });
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3500);
+  }
+</script>
+</body>
+</html>
